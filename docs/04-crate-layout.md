@@ -18,7 +18,9 @@
 >
 > **机器人场景（[02](02-embodied-ai-robot-profile.md)）又增加了约 7 个 crate**（`echo-safety` / `echo-motion` / `echo-bridge` / `echo-fieldbus` 及其子 crate / `echo-sensor`）。当前设计规模：**约 42 个 crate**。
 >
-> 其中 `crates/robot/*` 的依赖方向是**单向**的：`bridge → safety → motion → fieldbus`。这个顺序不可颠倒——它编码了 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-) 的三层防护模型，`xtask lint-deps` 应额外校验这条链的方向。
+> **`crates/robot/*` 属于阶段二/三，当前不实现**（[ADR-0019](05-design-decisions.md#adr-0019--分阶段交付实时控制优先)）。但其中的架构不变式**现在就要固化**：
+>
+> 依赖方向必须是**单向**的 `bridge → safety → motion → fieldbus`。这个顺序不可颠倒——它编码了 [02 §2.8.1](02-embodied-ai-robot-profile.md#281-ai-与硬实时的边界安全包络与命令仲裁--阶段三) 的三层防护模型。`xtask lint-deps` 应**在阶段一就加上这条链的方向校验**，即使 crate 尚未存在——否则等阶段三再补，架构已经被污染。
 
 ## 4.2 命名约定
 
@@ -137,30 +139,30 @@ echoos/                                    # workspace 根
 │   │   ├── echo-shell/                    # 交互式调试 shell（串口）
 │   │   └── echo-ota/                      # 固件升级 + A/B 双分区
 │   │
-│   ├── robot/                             # ── ★ 具身智能机器人专用层（见 02 §2.6）
-│   │   ├── echo-safety/                   # ★ 安全包络 + 命令仲裁 + 安全状态机
-│   │   │   └── src/                       #   第 2 层防护：AI 命令的语义边界（不可绕过）
-│   │   │       ├── envelope.rs            #   关节限位/工作空间/速率限制
-│   │   │       ├── freshness.rs           #   命令新鲜度与超时降级
-│   │   │       ├── state.rs               #   INIT/READY/ACTIVE/DAMPING/FAULT/ESTOP
-│   │   │       └── limits.rs              #   限值定义（编译期常量）
-│   │   ├── echo-motion/                   # ★ 轨迹插值 + 多关节同步（第 3 层防护）
+│   ├── robot/                             # ── ⏩ 阶段二/三：当前不实现（见 02 §2.3）
+│   │   ├── echo-motion/                   # ⏩ 阶段二：轨迹插值 + 多关节同步
 │   │   │   └── src/
 │   │   │       ├── interp.rs              #   航点 → 高频设定点插值
 │   │   │       ├── jerk.rs                #   加加速度限制（C² 连续）
 │   │   │       ├── multi_joint.rs         #   多关节共享时间基准
 │   │   │       └── filters.rs             #   低通/陷波/前馈（控制常用）
-│   │   ├── echo-bridge/                   # ★ 与 AI 栈的有界延迟接口（第 1 层防护）
-│   │   │   └── src/
-│   │   │       ├── shmem.rs               #   固定布局无锁共享内存环
-│   │   │       ├── framing.rs             #   序号/时间戳/CRC/版本协商
-│   │   │       └── transport/             #   共享内存 / 以太网 / 串口 后端
-│   │   ├── echo-fieldbus/                 # ★ 现场总线抽象
-│   │   │   ├── echo-can/                  #   CAN / CAN-FD（自研，可行）
-│   │   │   ├── echo-ethercat/             #   EtherCAT 从站（⏸ 见 02 §2.7 的 L1 冲突）
+│   │   ├── echo-fieldbus/                 # ⏩ 阶段二：现场总线抽象
+│   │   │   ├── echo-can/                  #   CAN / CAN-FD（自研可行）
+│   │   │   ├── echo-ethercat/             #   EtherCAT 从站（⏸ 见 02 §2.9 的 L1 冲突）
 │   │   │   └── echo-bus-sync/             #   总线时钟同步（DC/PTP 类）
-│   │   └── echo-sensor/                   # ★ 同步采样与传感器融合
-│   │       └── src/                       #   定时器触发 ADC+DMA、IMU 融合
+│   │   ├── echo-sensor/                   # ⏩ 阶段二：同步采样与传感器融合
+│   │   │   └── src/                       #   定时器触发 ADC+DMA、IMU 融合
+│   │   ├── echo-safety/                   # ⏩ 阶段三：安全包络 + 命令仲裁
+│   │   │   └── src/                       #   AI 命令的语义边界（不可绕过）
+│   │   │       ├── envelope.rs            #   关节限位/工作空间/速率限制
+│   │   │       ├── freshness.rs           #   命令新鲜度与超时降级
+│   │   │       ├── state.rs               #   INIT/READY/ACTIVE/DAMPING/FAULT/ESTOP
+│   │   │       └── limits.rs              #   限值定义（编译期常量）
+│   │   └── echo-bridge/                   # ⏩ 阶段三：与 AI 栈的有界延迟接口
+│   │       └── src/
+│   │           ├── shmem.rs               #   固定布局无锁共享内存环
+│   │           ├── framing.rs             #   序号/时间戳/CRC/版本协商
+│   │           └── transport/             #   共享内存 / 以太网 / 串口 后端
 │   │
 │   └── test/                              # ── 测试基础设施
 │       ├── echo-testkit/                  # QEMU 集成测试框架 + semihosting 断言
@@ -303,6 +305,7 @@ graph TD
     safety --> motion
     motion --> fieldbus
     kernel --> safety
+    %% ⏩ 以上 robot 层为阶段二/三，当前不实现；依赖方向已固化
 
     kernel --> bsp
     archcm --> bsp
@@ -338,7 +341,7 @@ AI 栈 ──► bridge ──► safety ──► motion ──► fieldbus ─
 sensor ──► safety   （传感器反馈参与安全判定）
 ```
 
-**注意 `bridge` 与 `safety` 之间没有反向边**：AI 栈只能"提交建议"，不能绕过安全层直接下达命令。这是 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-) 的核心设计，也是整个 EchoOS 安全模型的基础。
+**注意 `bridge` 与 `safety` 之间没有反向边**：AI 栈只能"提交建议"，不能绕过安全层直接下达命令。这是 [02 §2.8.1](02-embodied-ai-robot-profile.md#281-ai-与硬实时的边界安全包络与命令仲裁--阶段三) 的核心设计，也是整个 EchoOS 安全模型的基础。
 
 **关键观察**：图中**没有**从 `echo-kernel` 指向 `echo-arch-cortex-m` / `echo-arch-riscv` 的边。内核只依赖 `echo-arch-api`。具体架构实现由 BSP 在叶子处引入。这是整个布局的核心约束。
 

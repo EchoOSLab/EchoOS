@@ -31,7 +31,7 @@ pub struct CyclicExecutive<const SCHEDULE: &'static Schedule>;
 | 要点 | 说明 |
 | --- | --- |
 | 触发源 | **硬件定时器直接触发**，不经 tick——tick 驱动会引入一个 tick 周期的抖动 |
-| 槽位超限 | 检测 + 记录 + 钩子（[R12](02-embodied-ai-robot-profile.md#25-对-echoos-的架构要求)），可配置降级策略 |
+| 槽位超限 | 检测 + 记录 + 钩子（[R12](02-embodied-ai-robot-profile.md#27-对-echoos-的架构要求)），可配置降级策略 |
 | 编译期校验 | `const_assert!` 检查槽位不重叠、总预算不超周期 |
 | 与抢占任务共存 | 抢占任务只在空闲槽位运行；控制域**不被抢占**（除非显式配置） |
 | host 可测 | 用 `MockArch` 精确控制时间推进，验证相位与超限路径 |
@@ -450,7 +450,7 @@ fn syscall_handler(num: SyscallNumber, args: [u32; 4]) -> u32 {
 
 这一组子系统是 EchoOS 区别于通用 RTOS 的核心，实现 [03 §3.5.8](03-architecture.md#358-机器人三层防护-机器人场景新增) 的三层防护不变式。
 
-需求与设计动机见 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-)，决策见 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。本节只给 API 形态。
+需求与设计动机见 [02 §2.8.1](02-embodied-ai-robot-profile.md#281-ai-与硬实时的边界安全包络与命令仲裁--阶段三)，决策见 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。本节只给 API 形态。
 
 ### 6.8.1 `echo-bridge` —— 传输边界
 
@@ -511,7 +511,7 @@ pub enum RobotState { Init, Ready, Active, Damping, Fault, EStop }
 | 速率限制 | 命令变化率超阈值 → `Reject`（防"瞬移"） |
 | 状态机合法性 | 非 `Active` 状态拒绝运动命令 |
 
-**关键约束**：`validate` 是**纯函数**（无副作用、无分配、无阻塞），因此可以在 host 上用 `MockArch` 穷举边界与超时场景测试。这是它能在 [M8](08-roadmap.md#m8--运动控制与安全包络--核心差异化) 建立完整测试覆盖的前提。
+**关键约束**：`validate` 是**纯函数**（无副作用、无分配、无阻塞），因此可以在 host 上用 `MockArch` 穷举边界与超时场景测试。这是它能在 [M11 安全包络与命令仲裁](08-roadmap.md#m11--安全包络与命令仲裁--阶段三的核心) 建立完整测试覆盖的前提。
 
 ### 6.8.3 `echo-motion` —— 时间边界
 

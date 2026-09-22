@@ -2,6 +2,9 @@
 
 ## 3.1 分层模型
 
+> **架构参照 FreeRTOS**：精简宏内核 + 清晰的移植层 + 可裁剪的独立组件。分层与模块划分与 FreeRTOS 基本一一对应，但用 Rust 把 FreeRTOS 里靠约定维持的部分变成编译期保证。对照表见 [02 §2.2](02-embodied-ai-robot-profile.md#22-架构参照freertos--实时控制增强)；分阶段范围见 [02 §2.3](02-embodied-ai-robot-profile.md#23-分阶段交付策略-) 与 [ADR-0019](05-design-decisions.md#adr-0019--分阶段交付实时控制优先)。
+
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │ L7  应用              apps/ / examples/                          │  用户任务
@@ -159,7 +162,7 @@ arch 层提供 `PendSV_Handler` 等符号，通过 `extern "Rust"` 声明内核�
 
 ## 3.4 并发模型：循环执行体 + 抢占线程 + 中断
 
-> ⚠️ **本节已按具身智能机器人场景修正**（2026-09-22）。原表述为"线程 + 中断，async 可选"。机器人的多速率控制负载需要零抖动的静态调度，因此新增**循环执行体**为一等模式。详见 [02 §2.6.2](02-embodied-ai-robot-profile.md#262-多速率确定性循环执行体-vs-优先级抢占) 与 [ADR-0016](05-design-decisions.md#adr-0016--循环执行体作为一等调度模式)。
+> ⚠️ **本节已按具身智能机器人场景修正**（2026-09-22）。原表述为"线程 + 中断，async 可选"。机器人的多速率控制负载需要零抖动的静态调度，因此新增**循环执行体**为一等模式。详见 [02 §2.8.2](02-embodied-ai-robot-profile.md#282-多速率确定性循环执行体-vs-优先级抢占-阶段一) 与 [ADR-0016](05-design-decisions.md#adr-0016--循环执行体作为一等调度模式)。
 
 ### 修正后的调度模型
 
@@ -363,7 +366,7 @@ pub const IDLE_STACK_SIZE: usize = 512;
 
 ### 3.5.7 内存分层与缓存（★ 机器人场景新增）
 
-目标平台从 Cortex-M3/M4（无 D-Cache）转为 **STM32H7（Cortex-M7 @480 MHz + D-Cache + TCM）** 后引入的核心机制。详见 [02 §2.6.3](02-embodied-ai-robot-profile.md#263-缓存与-tcmcortex-m7-的现实) 与 [ADR-0018](05-design-decisions.md#adr-0018--内存分层tcm-放实时代码与数据缓存属性显式声明)。
+目标平台从 Cortex-M3/M4（无 D-Cache）转为 **STM32H7（Cortex-M7 @480 MHz + D-Cache + TCM）** 后引入的核心机制。详见 [02 §2.8.3](02-embodied-ai-robot-profile.md#283-缓存与-tcmcortex-m7-的现实-阶段一) 与 [ADR-0018](05-design-decisions.md#adr-0018--内存分层tcm-放实时代码与数据缓存属性显式声明)。
 
 ```
 ITCM  64 KB  零等待/不可缓存  ← 向量表、控制律代码、异常入口
@@ -382,7 +385,7 @@ SDRAM 可缓存                  ← 大数组、非实时
 
 ### 3.5.8 机器人三层防护（★ 机器人场景新增）
 
-EchoOS 在通用 RTOS 之上增加的一层，也是其核心差异化。详见 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-) 与 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。
+EchoOS 在通用 RTOS 之上增加的一层，也是其核心差异化。详见 [02 §2.8.1](02-embodied-ai-robot-profile.md#281-ai-与硬实时的边界安全包络与命令仲裁--阶段三) 与 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。
 
 ```
 AI 栈 ──► echo-bridge ──► echo-safety ──► echo-motion ──► fieldbus ──► 关节
