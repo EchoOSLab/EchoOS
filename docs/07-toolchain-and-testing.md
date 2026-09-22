@@ -1,6 +1,6 @@
-# 06 · 工具链、构建与测试
+# 07 · 工具链、构建与测试
 
-## 6.1 当前环境状态
+## 7.1 当前环境状态
 
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ qemu-system-arm --version
 
 `tools/scripts/setup.sh` 应把上述内容固化，并由 `cargo xtask setup` 调用（幂等，可重复执行）。
 
-## 6.2 工具链固定
+## 7.2 工具链固定
 
 `rust-toolchain.toml`：
 
@@ -57,7 +57,7 @@ profile    = "minimal"
 
 **固定具体版本号而非 `stable`**：OS 项目的构建必须可复现。升级工具链是一个有意识的、经过测试的动作，不是每天自动发生的事。
 
-## 6.3 workspace 与多 target 的冲突
+## 7.3 workspace 与多 target 的冲突
 
 这是**多 crate + 嵌入式最常见的坑**，必须在 M0 就解决：
 
@@ -105,7 +105,7 @@ default-members = [
 cargo xtask build --bsp qemu-cortex-m --example 02-preemptive-scheduling
 ```
 
-## 6.4 `.cargo/config.toml`
+## 7.4 `.cargo/config.toml`
 
 ```toml
 # 注意：不设置 [build] target —— 保持 host 为默认，让 cargo test 可用
@@ -149,9 +149,9 @@ fn main() {
 
 **`rerun-if-changed` 漏写是嵌入式项目的经典陷阱**：改了 `memory.x`（比如调整内存布局）但 cargo 认为没变化 → 用旧的链接脚本链接 → 诡异的运行时错误。
 
-## 6.5 寄存器代码生成流水线（L1 特有）
+## 7.5 寄存器代码生成流水线（L1 特有）
 
-[ADR-0015](04-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成) 的落地流程。
+[ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成) 的落地流程。
 
 ### 数据流
 
@@ -236,7 +236,7 @@ cargo xtask gen-regs --chip all            # 全部重新生成
 cargo xtask gen-regs --check               # CI 用：只校验一致性，不写文件
 ```
 
-## 6.6 测试金字塔
+## 7.6 测试金字塔
 
 | 层级 | 环境 | 测什么 | 工具 | 何时跑 |
 | --- | --- | --- | --- | --- |
@@ -313,7 +313,7 @@ fn qemu_integration() {
 
 在 L1 策略下，`defmt-test` / `probe-rs test` 等生态工具不可用（它们依赖 `defmt` crate），因此 `echo-testkit` **必须自研**。这反而简单：semihosting 的接口很窄，实现约数百行。
 
-## 6.7 静态检查清单（CI）
+## 7.7 静态检查清单（CI）
 
 ```bash
 cargo fmt --all -- --check                     # 格式
@@ -349,7 +349,7 @@ deny = [
 
 > 这体现了 L1 的一个隐性收益：**合规工作量归零**。没有 SBOM 要维护，没有许可证冲突要分析，没有 CVE 要跟踪。
 
-## 6.8 Miri
+## 7.8 Miri
 
 `echo-util` / `echo-mm` 的 `unsafe` 代码**必须**通过 Miri：
 
@@ -364,7 +364,7 @@ cargo +nightly miri test -p echo-util -p echo-mm   # Miri 需要 nightly（仅�
 - 不支持部分原子操作与内存映射 I/O
 - 因此 Miri 的覆盖面**恰好**是 `echo-util` / `echo-mm` 这些"纯 Rust + unsafe 指针操作"的 crate —— 而这正是最需要它的地方。
 
-## 6.9 实时性度量
+## 7.9 实时性度量
 
 ### 中断延迟
 
@@ -421,7 +421,7 @@ cargo xtask bench --bsp nucleo-f401re --json > bench.json
 
 `echo-bench` 的输出格式应稳定（JSON + 版本号），便于跨版本对比与画趋势图。
 
-## 6.10 构建产物大小报告
+## 7.10 构建产物大小报告
 
 ```bash
 cargo xtask size --bsp nucleo-f401re
@@ -447,7 +447,7 @@ Top 10 largest symbols:
 
 **用途**：G3（静态可裁剪）的验收依据。每次发布记录，劣化即审查。`core::fmt` 的意外引入是嵌入式常见的体积膨胀源，需要专门盯。
 
-## 6.11 调试支持
+## 7.11 调试支持
 
 | 手段 | 用途 |
 | --- | --- |

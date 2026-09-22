@@ -1,8 +1,44 @@
-# 05 · 核心子系统设计
+# 06 · 核心子系统设计
 
-## 5.1 调度器（`echo-sched`）
+## 6.1 调度器（`echo-sched`）
 
-### 算法
+> ⚠️ **已按机器人场景修正**：本子系统现在提供**两种调度模式**，见 [ADR-0016](05-design-decisions.md#adr-0016--循环执行体作为一等调度模式)。§6.1 描述的是**抢占任务域**；新增的**控制域**用下面的循环执行体。
+
+### 模式二：循环执行体（CyclicExecutive）★ 新增
+
+用于机器人的多速率控制负载，提供**零抖动**的静态调度。
+
+```rust
+// 调度表是编译期常量 —— ADR-0007 哲学的自然延伸
+echo::cyclic_schedule! {
+    period = 1_000_000,             // 1 ms 主周期（纳秒）
+    slots = [
+        Slot { task: velocity_loop, budget: 200_000 },   // 200 µs
+        Slot { task: position_loop, budget: 100_000 },
+        Slot { task: balance_ctrl,  budget: 200_000 },
+        Slot { task: interp_step,   budget: 100_000 },
+        Slot { task: safety_check,  budget:  50_000 },
+        Slot { task: idle,          budget: 350_000 },
+    ],
+}
+
+// 内核侧：SCHEDULE 是 const 泛型参数
+pub struct CyclicExecutive<const SCHEDULE: &'static Schedule>;
+```
+
+**设计要点**：
+
+| 要点 | 说明 |
+| --- | --- |
+| 触发源 | **硬件定时器直接触发**，不经 tick——tick 驱动会引入一个 tick 周期的抖动 |
+| 槽位超限 | 检测 + 记录 + 钩子（[R12](02-embodied-ai-robot-profile.md#25-对-echoos-的架构要求)），可配置降级策略 |
+| 编译期校验 | `const_assert!` 检查槽位不重叠、总预算不超周期 |
+| 与抢占任务共存 | 抢占任务只在空闲槽位运行；控制域**不被抢占**（除非显式配置） |
+| host 可测 | 用 `MockArch` 精确控制时间推进，验证相位与超限路径 |
+
+**域边界**（必须写进 review 检查项，见 [03 §3.4](03-architecture.md#34-并发模型循环执行体--抢占线程--中断)）：控制域 = 控制律/插值/安全校验/传感器处理；服务域 = 通信/诊断/日志/shell。跨域一律走 `echo-ipc` 有界非阻塞队列。
+
+### 模式一：优先级抢占（服务域）
 
 **固定优先级抢占式 + 同优先级时间片轮转（可选）+ 优先级继承**。
 
@@ -75,7 +111,7 @@
 
 ---
 
-## 5.2 内存管理（`echo-mm`）
+## 6.2 内存管理（`echo-mm`）
 
 ### 内存布局
 
@@ -146,7 +182,7 @@ static SENSOR_TASK_TCB: Tcb = Tcb::new(/* ... */);
 
 ---
 
-## 5.3 同步原语（`echo-sync`）
+## 6.3 同步原语（`echo-sync`）
 
 ### 原语矩阵
 
@@ -221,7 +257,7 @@ QUEUE.send(msg).await;      // 所有权转移给接收者
 
 ---
 
-## 5.4 时间管理（`echo-time`）
+## 6.4 时间管理（`echo-time`）
 
 ### 时基
 
@@ -269,7 +305,7 @@ O(n) 插入（线性扫描）适用于少量定时器（< 32 个）
 
 ---
 
-## 5.5 IPC（`echo-ipc`）
+## 6.5 IPC（`echo-ipc`）
 
 | 机制 | 语义 | 数据传递 | 适用 |
 | --- | --- | --- | --- |
@@ -302,7 +338,7 @@ impl<T, const N: usize> Queue<T, N> {
 
 ---
 
-## 5.6 驱动模型与设备树（`echo-driver`）
+## 6.6 驱动模型与设备树（`echo-driver`）
 
 ### 编译期设备树
 
@@ -344,7 +380,7 @@ ISR（上半部）                      任务（下半部）
 
 ### HAL trait 体系（`echo-hal`）
 
-在 [ADR-0014](04-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) 的 L1 策略下，`embedded-hal` 不可用，**必须自研 HAL trait**。设计原则：
+在 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) 的 L1 策略下，`embedded-hal` 不可用，**必须自研 HAL trait**。设计原则：
 
 1. **概念对齐 `embedded-hal` 1.0**。不追求 API 相同，但 trait 划分（`I2c` / `Spi` / `Digital` / `Delay` / `Serial`）、错误语义、读写分离的思路保持一致。这样将来若有人写移植层，心智负担最小。
 2. **区分阻塞与异步**。`embedded-hal` 的阻塞 trait 在 EchoOS 中会**挂起当前任务**而非忙等——这需要 trait 的签名允许内核介入。
@@ -378,7 +414,7 @@ pub trait DigitalPin {
 
 ---
 
-## 5.7 系统调用与用户态（后期，M8+）
+## 6.7 系统调用与用户态（后期，M8+）
 
 首版任务全部运行在**非特权模式**，通过 `SVC` 陷入内核。这是 Tock/Hubris 都采用的模型。
 
@@ -406,4 +442,101 @@ fn syscall_handler(num: SyscallNumber, args: [u32; 4]) -> u32 {
 - **用户指针校验**：`UserPtr<T>` 类型在构造时校验地址落在用户的合法内存区域内，且**在每次解引用时重新校验**（TOCTOU 防护）。
 - **能力模型**：任务只能访问被显式授予的资源（类似 Hubris/Tock 的能力传递）。
 
-**这部分风险极高，建议放在 M8 及以后，且优先考虑只做特权模式版本（所有任务特权），把非特权隔离作为后续可选增强。**
+**这部分风险极高，建议放在 M11 及以后，且优先考虑只做特权模式版本（所有任务特权），把非特权隔离作为后续可选增强。**
+
+---
+
+## 6.8 机器人子系统（★ 机器人场景新增）
+
+这一组子系统是 EchoOS 区别于通用 RTOS 的核心，实现 [03 §3.5.8](03-architecture.md#358-机器人三层防护-机器人场景新增) 的三层防护不变式。
+
+需求与设计动机见 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-)，决策见 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。本节只给 API 形态。
+
+### 6.8.1 `echo-bridge` —— 传输边界
+
+**只保证"传过来的东西是完好的"，不保证"内容是安全的"。**
+
+```rust
+// 固定布局，无序列化、无分配、O(1)
+#[repr(C)]
+pub struct CommandFrame {
+    pub seq: u32,              // 序号：检测丢失/错序
+    pub timestamp_us: u64,     // 时间戳：新鲜度判定
+    pub version: u16,          // 版本：与 RTOS 侧协商
+    pub joint_count: u8,
+    pub joints: [JointTarget; MAX_JOINTS],
+    pub crc: u32,              // 完好性
+}
+
+// RTOS 侧：非阻塞读，永不阻塞控制域
+impl CommandChannel {
+    pub fn try_read(&self) -> Option<Result<CommandFrame, BridgeError>>;
+}
+```
+
+| 检查项 | 失败处理 |
+| --- | --- |
+| CRC 校验 | 丢弃该帧，记录计数 |
+| 版本不匹配 | **拒绝连接**（不崩溃） |
+| 序号跳变 | 记录丢包率；超阈值 → 降级 |
+| 时间戳过期 | 交给 `echo-safety` 做新鲜度判定 |
+
+### 6.8.2 `echo-safety` —— 语义边界（不可绕过）
+
+```rust
+pub enum SafetyVerdict {
+    Accept,
+    Clamp { reason: ClampReason },      // 可安全钳制到边界内
+    Reject { reason: RejectReason },    // 必须拒绝
+    EmergencyStop { reason: EstopReason },
+}
+
+pub struct SafetyEnvelope {
+    limits: &'static JointLimits,       // 编译期常量，与机器人本体绑定
+}
+
+impl SafetyEnvelope {
+    /// 唯一的命令入口 —— 不存在绕过它的公开 API
+    pub fn validate(&self, cmd: &CommandFrame, state: &RobotState) -> SafetyVerdict;
+}
+
+pub enum RobotState { Init, Ready, Active, Damping, Fault, EStop }
+```
+
+| 检查 | 说明 |
+| --- | --- |
+| 位置/速度/加速度/加加速度/力矩限位 | 五阶限值，`JointLimits` 编译期常量 |
+| 工作空间边界 / 自碰撞 / 奇异位形 | 需要 `echo-kinematics`（可选，视机器人构型） |
+| 命令新鲜度 | 超时 → `Reject`，进入 `Damping`（受控减速） |
+| 速率限制 | 命令变化率超阈值 → `Reject`（防"瞬移"） |
+| 状态机合法性 | 非 `Active` 状态拒绝运动命令 |
+
+**关键约束**：`validate` 是**纯函数**（无副作用、无分配、无阻塞），因此可以在 host 上用 `MockArch` 穷举边界与超时场景测试。这是它能在 [M8](08-roadmap.md#m8--运动控制与安全包络--核心差异化) 建立完整测试覆盖的前提。
+
+### 6.8.3 `echo-motion` —— 时间边界
+
+**即使 AI 命令迟到或中断，也已有一条安全轨迹在跑。**
+
+```rust
+pub struct TrajectoryGenerator<const JOINTS: usize> {
+    // 内部维护"当前安全轨迹"——它永远存在
+}
+
+impl<const N: usize> TrajectoryGenerator<N> {
+    /// 接收已通过安全校验的航点，重规划轨迹
+    pub fn plan(&mut self, waypoints: &[Waypoint<N>]);
+
+    /// 由控制域的循环执行体每周期调用（插值步进）
+    /// 即使从未调用 plan，也会沿当前轨迹继续或平滑减速
+    pub fn step(&mut self, dt_ns: u64) -> [JointSetpoint; N];
+}
+```
+
+| 特性 | 说明 |
+| --- | --- |
+| 加加速度限制 | C² 连续，避免机械冲击（jerk-limited S 曲线） |
+| 多关节同步 | 所有关节共享同一时间基准，与总线周期对齐 |
+| 有界延迟 | 无论 AI 命令何时到达，输出始终连续 |
+| 失联降级 | 无新命令 → 沿当前轨迹完成后平滑减速至停止 |
+
+> **`plan` 与 `step` 的分离是关键设计**：`plan` 在服务域调用（可能被延迟），`step` 在控制域调用（严格周期）。两者通过有界队列通信——这天然满足了"AI 命令迟到也不影响控制环"的要求。

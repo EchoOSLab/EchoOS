@@ -1,6 +1,6 @@
-# 03 · 多 crate 工程布局
+# 04 · 多 crate 工程布局
 
-## 3.1 为什么用多 crate 而不是单 crate + feature
+## 4.1 为什么用多 crate 而不是单 crate + feature
 
 | 维度 | 单 crate + feature | **多 crate（选择）** |
 | --- | --- | --- |
@@ -14,9 +14,13 @@
 
 **结论**：多 crate 的收益集中在"边界由编译器保证"和"unsafe 白名单"两点上，对 OS 这类长周期、高可靠性要求的项目是决定性优势。代价用 `xtask` 抹平。
 
-> **L1 策略放大了多 crate 的价值**（[ADR-0014](04-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研)）。原本由 `cortex-m`、`embedded-hal`、`heapless`、`portable-atomic` 等 crate 提供的功能，现在由 `echo-atomic`、`echo-vcell`、`echo-hal`、`echo-util` 承担。这些自研基础设施的边界越清晰，被复用的部分（内核逻辑）就越不需要改动。crate 数量从约 30 增至约 35。
+> **L1 策略放大了多 crate 的价值**（[ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研)）。原本由 `cortex-m`、`embedded-hal`、`heapless`、`portable-atomic` 等 crate 提供的功能，现在由 `echo-atomic`、`echo-vcell`、`echo-hal`、`echo-util` 承担。这些自研基础设施的边界越清晰，被复用的部分（内核逻辑）就越不需要改动。
+>
+> **机器人场景（[02](02-embodied-ai-robot-profile.md)）又增加了约 7 个 crate**（`echo-safety` / `echo-motion` / `echo-bridge` / `echo-fieldbus` 及其子 crate / `echo-sensor`）。当前设计规模：**约 42 个 crate**。
+>
+> 其中 `crates/robot/*` 的依赖方向是**单向**的：`bridge → safety → motion → fieldbus`。这个顺序不可颠倒——它编码了 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-) 的三层防护模型，`xtask lint-deps` 应额外校验这条链的方向。
 
-## 3.2 命名约定
+## 4.2 命名约定
 
 - 仓库名：`echoos`
 - crate 目录名：`echo-<domain>[-<impl>]`（kebab-case），如 `echo-arch-cortex-m`
@@ -24,7 +28,7 @@
 - crate lib 名：`echo_<domain>_<impl>`（snake_case），如 `echo_arch_cortex_m`
 - 所有 crate **必须** `#![no_std]`（除明确标注 `host-test-only` 的）
 
-## 3.3 完整目录树
+## 4.3 完整目录树
 
 ```
 echoos/                                    # workspace 根
@@ -39,7 +43,7 @@ echoos/                                    # workspace 根
 ├── .github/workflows/
 │   ├── ci.yml                             # 主 CI
 │   └── latency-bench.yml                  # 延迟基准回归
-├── xtask/                                 # 构建编排（见 §3.6）
+├── xtask/                                 # 构建编排（见 §4.6）
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
@@ -72,7 +76,7 @@ echoos/                                    # workspace 根
 │   │   │       ├── vec.rs                 # ★ 固定容量 Vec（替代 heapless）
 │   │   │       ├── string.rs              # ★ 固定容量 String
 │   │   │       └── time.rs                # Instant / Duration（无 std）
-│   │   ├── echo-config/                   # 编译期配置常量（见 02 §2.5.6）
+│   │   ├── echo-config/                   # 编译期配置常量（见 02 §3.5.6）
 │   │   ├── echo-macros/                   # proc-macro：#[echo::task] 等
 │   │   └── echo-trace/                    # 内核 trace / 日志（自研后端）
 │   │
@@ -101,6 +105,8 @@ echoos/                                    # workspace 根
 │   │   │       ├── systick.rs             # 节拍源
 │   │   │       └── vector.rs              # 向量表
 │   │   ├── echo-arch-riscv/               # RV32IMAC（含 CLINT/PLIC）
+│   │   ├── echo-arch-cortex-r/            # ★ Cortex-R52/R5F（GIC、TCM、锁步）
+│   │   │   └── src/                       #   目标：Jetson Orin 安全岛等
 │   │   └── echo-arch-mock/                # ★ host 测试用模拟实现（可记录调用序列）
 │   │
 │   ├── kernel/                            # ── L3/L4：内核主体
@@ -127,20 +133,48 @@ echoos/                                    # workspace 根
 │   │   ├── echo-driver/                   # 驱动模型 + 编译期设备树 + 中断绑定
 │   │   ├── echo-hal/                      # ★ 自研 HAL trait 体系（概念对齐 embedded-hal）
 │   │   ├── echo-fs/                       # 日志结构文件系统（掉电一致）
-│   │   ├── echo-net/                      # ⏸ 自研协议栈 —— 推迟到 M9+（见 07 路线图）
+│   │   ├── echo-net/                      # ⏸ 通用 TCP/IP —— 已列为非目标（见 02 §2.7）
 │   │   ├── echo-shell/                    # 交互式调试 shell（串口）
 │   │   └── echo-ota/                      # 固件升级 + A/B 双分区
 │   │
+│   ├── robot/                             # ── ★ 具身智能机器人专用层（见 02 §2.6）
+│   │   ├── echo-safety/                   # ★ 安全包络 + 命令仲裁 + 安全状态机
+│   │   │   └── src/                       #   第 2 层防护：AI 命令的语义边界（不可绕过）
+│   │   │       ├── envelope.rs            #   关节限位/工作空间/速率限制
+│   │   │       ├── freshness.rs           #   命令新鲜度与超时降级
+│   │   │       ├── state.rs               #   INIT/READY/ACTIVE/DAMPING/FAULT/ESTOP
+│   │   │       └── limits.rs              #   限值定义（编译期常量）
+│   │   ├── echo-motion/                   # ★ 轨迹插值 + 多关节同步（第 3 层防护）
+│   │   │   └── src/
+│   │   │       ├── interp.rs              #   航点 → 高频设定点插值
+│   │   │       ├── jerk.rs                #   加加速度限制（C² 连续）
+│   │   │       ├── multi_joint.rs         #   多关节共享时间基准
+│   │   │       └── filters.rs             #   低通/陷波/前馈（控制常用）
+│   │   ├── echo-bridge/                   # ★ 与 AI 栈的有界延迟接口（第 1 层防护）
+│   │   │   └── src/
+│   │   │       ├── shmem.rs               #   固定布局无锁共享内存环
+│   │   │       ├── framing.rs             #   序号/时间戳/CRC/版本协商
+│   │   │       └── transport/             #   共享内存 / 以太网 / 串口 后端
+│   │   ├── echo-fieldbus/                 # ★ 现场总线抽象
+│   │   │   ├── echo-can/                  #   CAN / CAN-FD（自研，可行）
+│   │   │   ├── echo-ethercat/             #   EtherCAT 从站（⏸ 见 02 §2.7 的 L1 冲突）
+│   │   │   └── echo-bus-sync/             #   总线时钟同步（DC/PTP 类）
+│   │   └── echo-sensor/                   # ★ 同步采样与传感器融合
+│   │       └── src/                       #   定时器触发 ADC+DMA、IMU 融合
+│   │
 │   └── test/                              # ── 测试基础设施
 │       ├── echo-testkit/                  # QEMU 集成测试框架 + semihosting 断言
-│       ├── echo-bench/                    # 实时性基准（中断延迟/切换时间/临界区）
+│       ├── echo-bench/                    # 实时性基准（★ 必须报告分布 P50/P99/max）
 │       └── echo-conformance/              # 跨平台一致性测试套件（同一份测试跑所有 arch）
 │
 ├── bsp/                                   # ── 板级支持包（每个 = 一个可执行目标）
-│   ├── echo-bsp-qemu-cortex-m/            # ★ 首选验证平台：QEMU mps2-an385 (Cortex-M3)
-│   ├── echo-bsp-qemu-riscv-virt/          # QEMU virt (RV32IMAC)
-│   ├── echo-bsp-nucleo-f401re/            # ★ 首选真机：STM32F401RE (Cortex-M4F)
-│   ├── echo-bsp-stm32f407-discovery/      # STM32F407 (Cortex-M4F, 更多外设)
+│   ├── echo-bsp-qemu-cortex-m/            # QEMU mps2-an385 (Cortex-M3)，CI 用
+│   ├── echo-bsp-qemu-riscv-virt/          # QEMU virt (RV32IMAC)，可移植性验证
+│   ├── echo-bsp-nucleo-h743zi/            # ★ 首选真机：STM32H743 (Cortex-M7 @480MHz,
+│   │                                      #   D-Cache + TCM) —— 见 02 §2.6.3
+│   ├── echo-bsp-stm32h7-joint/            # ★ 关节控制器参考设计（电机驱动 + CAN-FD）
+│   ├── echo-bsp-nucleo-f401re/            # STM32F401RE (Cortex-M4F)，简化验证
+│   ├── echo-bsp-stm32h7-coordinator/      # 协调节点参考设计（多关节 + 总线主站）
 │   └── echo-bsp-esp32c3/                  # ESP32-C3 (RV32IMAC) —— 可选
 │
 ├── examples/                              # 教程式示例，按序号递进
@@ -173,7 +207,7 @@ echoos/                                    # workspace 根
     └── analyzer/                          # 栈深度分析、临界区扫描（后期）
 ```
 
-## 3.4 依赖图
+## 4.4 依赖图
 
 ```mermaid
 graph TD
@@ -209,6 +243,12 @@ graph TD
     fs[echo-fs]
     net[echo-net]
     shell[echo-shell]
+
+    safety[echo-safety]
+    motion[echo-motion]
+    bridge[echo-bridge]
+    fieldbus[echo-fieldbus]
+    sensor[echo-sensor]
 
     bsp[echo-bsp-*]
     app[examples / apps]
@@ -257,6 +297,13 @@ graph TD
     sys --> net
     sys --> shell
 
+    sys --> sensor
+    sensor --> safety
+    bridge --> safety
+    safety --> motion
+    motion --> fieldbus
+    kernel --> safety
+
     kernel --> bsp
     archcm --> bsp
     archrv --> bsp
@@ -264,25 +311,42 @@ graph TD
     hal --> bsp
     fs --> bsp
     rt --> bsp
+    safety --> bsp
+    motion --> bsp
+    fieldbus --> bsp
+    bridge --> bsp
     bsp --> app
 
     classDef leaf fill:#e8f4f8,stroke:#2b7a9e
     classDef kern fill:#fff4e6,stroke:#d97706
     classDef svc fill:#f0e8f8,stroke:#7c3aed
     classDef reg fill:#e8f8ec,stroke:#16a34a
+    classDef robot fill:#fde8ef,stroke:#be185d
     class atomic,vcell,util,config,macros,trace leaf
     class crit,mm,time,sched,sync,ipc,kernel kern
     class driver,hal,fs,net,shell svc
     class regs,chipregs reg
+    class safety,motion,bridge,fieldbus,sensor robot
 ```
+
+**机器人层的数据流**（单向、不可绕过）：
+
+```
+AI 栈 ──► bridge ──► safety ──► motion ──► fieldbus ──► 关节
+            传输边界    语义边界    时间边界      总线
+
+sensor ──► safety   （传感器反馈参与安全判定）
+```
+
+**注意 `bridge` 与 `safety` 之间没有反向边**：AI 栈只能"提交建议"，不能绕过安全层直接下达命令。这是 [02 §2.6.1](02-embodied-ai-robot-profile.md#261-ai-与硬实时的边界安全包络与命令仲裁-) 的核心设计，也是整个 EchoOS 安全模型的基础。
 
 **关键观察**：图中**没有**从 `echo-kernel` 指向 `echo-arch-cortex-m` / `echo-arch-riscv` 的边。内核只依赖 `echo-arch-api`。具体架构实现由 BSP 在叶子处引入。这是整个布局的核心约束。
 
-## 3.5 依赖规则（由 `cargo xtask lint-deps` 强制）
+## 4.5 依赖规则（由 `cargo xtask lint-deps` 强制）
 
 ### R1 — 依赖只能向下，不可向上，不可同层横向
 
-层号见 [02 §2.1](02-architecture.md#21-分层模型)。同一层内的 crate **禁止**互相依赖（`echo-util` / `echo-config` / `echo-macros` / `echo-trace` 之间也不互相依赖）。
+层号见 [03 §3.1](03-architecture.md#31-分层模型)。同一层内的 crate **禁止**互相依赖（`echo-util` / `echo-config` / `echo-macros` / `echo-trace` 之间也不互相依赖）。
 
 > 例外：`echo-sched` → `echo-critical`、`echo-sync` → `echo-sched` 这类**层内有序依赖**需在 `xtask` 的白名单中显式声明，并附理由。白名单必须保持极短。
 
@@ -345,11 +409,11 @@ cortex-m = "0.7"
 
 **检查实现**：`cargo xtask lint-deps` 遍历 `cargo metadata` 中所有非 host-tool 成员，对每个 `[dependencies]` 项断言其 `source` 为 `null`（即 path 依赖）。
 
-> 这条规则是 [ADR-0014](04-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) 的执行保障。**没有它，L1 会在第一次"就加一个小 crate 吧"时失效。**
+> 这条规则是 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) 的执行保障。**没有它，L1 会在第一次"就加一个小 crate 吧"时失效。**
 
-## 3.6 `xtask`：统一入口
+## 4.6 `xtask`：统一入口
 
-多 crate + 多 target 的现实是：**裸 `cargo build` 跑不通**。原因见 [06 §6.3](06-toolchain-and-testing.md#63-workspace-与多-target-的冲突)。
+多 crate + 多 target 的现实是：**裸 `cargo build` 跑不通**。原因见 [07 §7.3](07-toolchain-and-testing.md#73-workspace-与多-target-的冲突)。
 
 因此**所有操作通过 `xtask` 进行**：
 
@@ -369,7 +433,7 @@ cargo xtask size   --bsp nucleo-f401re     # ROM/RAM 占用报告
 
 `lint-deps` 的实现思路：解析 `cargo metadata --format-version 1`，构造 crate 依赖图，用硬编码的层映射表校验每条边，违反则非零退出。**这是让架构约束"活着"的关键——没有它，R1/R2 会在三个月内被悄悄破坏。**
 
-## 3.7 Cargo workspace 配置要点
+## 4.7 Cargo workspace 配置要点
 
 ```toml
 # 根 Cargo.toml
@@ -382,6 +446,7 @@ members = [
     "crates/kernel/*",
     "crates/api/*",
     "crates/services/*",
+    "crates/robot/*",
     "crates/test/*",
     "bsp/*",
     "examples/*",
