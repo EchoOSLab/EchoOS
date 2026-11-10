@@ -194,13 +194,17 @@ echoos/                                    # workspace 根
 │
 └── tools/
     ├── svdgen/                            # ★ 自研 SVD → Rust 寄存器代码生成器
-    │   ├── Cargo.toml                     #   （唯一允许用 std 的 workspace 成员）
+    │   ├── Cargo.toml                     #   （host 工具，允许 std）
     │   └── src/
     │       ├── main.rs                    #   CLI：svdgen <input.svd> <outdir>
     │       ├── xml.rs                     #   自研 XML 子集解析（不用 quick-xml）
     │       ├── model.rs                   #   外设/寄存器/位域/枚举 建模
     │       ├── validate.rs                #   地址对齐、区间重叠、命名冲突校验
     │       └── codegen.rs                 #   模板与代码生成（输出 echo-*-regs）
+    ├── codegen/                           # ★ YAML → 静态调度图（DoraOS Micro target）
+    │   └── src/
+    │       ├── lib.rs                     #   YAML 子集解析/校验/生成
+    │       └── main.rs                    #   CLI：echo-codegen <in.yaml> <out.rs>
     ├── vendor-svd/                        #   厂商 SVD 原始文件（公开标准，非软件依赖）
     │   ├── STM32F401.svd
     │   └── README.md                      #   来源与版本记录
@@ -388,7 +392,7 @@ sensor ──► safety   （传感器反馈参与安全判定）
 
 ### R5 — 无 `std`
 
-所有 crate（`xtask`、`svdgen`、`echo-testkit` 的 host 部分除外）必须 `#![no_std]`。
+所有 crate（`xtask`、`svdgen`、`codegen`、`echo-testkit` 的 host 部分除外）必须 `#![no_std]`。
 
 ### R6 — 禁止循环依赖与 `dev-dependencies` 泄漏
 
@@ -414,7 +418,7 @@ cortex-m = "0.7"
 | --- | --- |
 | `core` | Rust 语言的一部分，不是第三方 crate |
 | `compiler_builtins` | `rustc` 隐式链接的编译器运行时 |
-| `xtask` / `svdgen` 的依赖 | **host 侧工具，不进镜像** |
+| `xtask` / `svdgen` / `codegen` 的依赖 | **host 侧工具，不进镜像** |
 | `echo-testkit` 的 host 侧依赖 | 测试框架，不进镜像 |
 | `dev-dependencies` | 仅测试用，不进发布镜像 |
 | `picolibc`（C 运行时） | [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) 的受控例外：vendored + 固定版本 + 许可审计，**仅 `echo-posix` 链接**，硬实时 crate 不得依赖（R8） |

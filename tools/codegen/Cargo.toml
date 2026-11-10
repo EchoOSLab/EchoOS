@@ -1,0 +1,13 @@
+[package]
+name = "echo-codegen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "echo-codegen"
+path = "src/main.rs"
+
+[lib]
+name = "echo_codegen"
+path = "src/lib.rs"

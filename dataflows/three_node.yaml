@@ -1,0 +1,12 @@
+# 3 节点静态数据流：sensor → control → actuator
+# W4 codegen 的输入；生成物见 crates/test/echo-conformance/tests/data/
+frame_ns: 1000
+nodes:
+  - name: sensor
+    slot_ns: 200
+  - name: control
+    slot_ns: 100
+    inputs: [sensor]
+  - name: actuator
+    slot_ns: 50
+    inputs: [control]
