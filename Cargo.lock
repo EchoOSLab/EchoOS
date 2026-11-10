@@ -21,6 +21,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-bench"
+version = "0.1.0"
+
+[[package]]
 name = "echo-bsp-nucleo-h743zi"
 version = "0.1.0"
 dependencies = [
@@ -76,6 +80,10 @@ dependencies = [
  "echo-arch-api",
  "echo-arch-mock",
 ]
+
+[[package]]
+name = "echo-time"
+version = "0.1.0"
 
 [[package]]
 name = "echo-trace"
