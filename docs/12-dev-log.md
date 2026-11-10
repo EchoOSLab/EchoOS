@@ -14,6 +14,7 @@
 | 2026-11-10 | W1-002 | 文档 | W1 日志与计划进度跟踪 | 本条目 |
 | 2026-11-10 | W2-001 | 功能 | SPSC Mailbox + 3 节点图（10⁶ 帧 0 丢包） | `65e839d` |
 | 2026-11-10 | W3-001 | 功能 | PAL 5 域契约 + MockPlatform + 7 个 conformance | `7f67c68` |
+| 2026-11-10 | W4-001 | 功能 | YAML → 静态图 codegen（生成物 check in + 漂移测试） | `1e317ea` |
 
 ---
 
@@ -184,6 +185,42 @@ cargo xtask hello: 四目标回归 PASS
 1. `tools/codegen`：YAML 子集 → 静态图代码；
 2. 任务声明走 `TaskApi::declare`，生成图与手写 3 节点图 trace 一致；
 3. 新增 `docs/15-codegen.md`，追加 `W4-001`。
+
+---
+
+## 2026-11-10 · W4-001 · YAML → 静态调度图
+
+**目标**：把 `dataflows/*.yaml` 编译成静态调度表，并证明生成图与手写图语义一致。
+
+**改动**：
+- `tools/codegen`：受限 YAML 解析、校验、代码生成 + CLI（`echo-codegen <in.yaml> <out.rs>`）。
+- `dataflows/three_node.yaml`：3 节点输入（frame 1000，槽位 200/100/50）。
+- `crates/test/echo-conformance/tests/data/generated_three_node.rs`：生成物，**check in**。
+- `crates/test/echo-conformance/tests/generated_graph.rs`：生成图 vs 手写图 1000 帧 trace 对比。
+- `docs/15-codegen.md`：YAML schema、校验规则、再生成命令、决策与限制。
+
+**验证**：
+```text
+cargo test
+echo-codegen:        7 passed
+generated_graph:     2 passed
+累计 40 passed, 0 failed
+cargo fmt --check:   OK
+cargo clippy:        无警告
+cargo xtask hello:   四目标回归 PASS
+```
+
+**决策/偏差**：
+- **D-013**：YAML 顺序 = 调度顺序，不做拓扑重排；静态图的可分析性优先。
+- **D-014**：生成物 check in + `checked_in_conformance_file_is_current` 漂移测试（CI 可守）。
+- **D-015**：只生成声明（调度表/常量/边元数据），任务体由应用注入。
+- **D-016**：自写 YAML 子集解析（不引第三方 crate），与 L1 一致。
+- **偏差**：`EDGES` 目前只是元数据，尚未自动接 Mailbox/PAL Channel；多帧速率、DAG 重排均未做。
+
+**下一步（W5）**：
+1. `echo-arch-cortex-m`：向量表、link.x、`Arch` 实现、semihosting/UART trace；
+2. QEMU `mps2-an500` 上跑 3 节点图 + 1 kHz 槽位；
+3. 新增 `docs/16-qemu-integration.md`，追加 `W5-001`。
 
 ---
 

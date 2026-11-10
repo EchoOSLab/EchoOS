@@ -491,7 +491,7 @@ echo-vcell      = { path = "crates/core/echo-vcell" }
 
 # ★ 无外部依赖 —— 见 ADR-0014。
 # 不要在这里添加任何来自 crates.io 的条目。
-# host 侧工具（xtask / svdgen）的依赖写在各自的 Cargo.toml 中，
+# host 侧工具（xtask / svdgen / codegen）的依赖写在各自的 Cargo.toml 中，
 # 它们不参与镜像构建，不受 R7 约束。
 
 [profile.release]
