@@ -192,7 +192,10 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] W10：PAL v0.1 冻结 + 第二后端 conformance（80 tests）
 - [x] W11 host：宽/窄通道 + QEMU 摘要对比（82 tests）
 - [x] W12：D90 评审（条件 Go；D60 未通过，硬件门保留）
-- [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
+- [x] 硬件选型改为 **WeAct STM32H750VBT6 + ST-Link**（H750 128 KB Flash/1 MB RAM；首启 HSI 64 MHz）
+- [ ] H750 上板首启：看到 `EchoOS H750: boot` + `3-node graph OK`
+- [ ] H750 PLL 480 MHz / UART / 真实 PendSV（后续）
+- [ ] 8 通道逻辑分析仪（W9 真机抖动仍需要）
 
 ---
 
@@ -224,3 +227,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-11 | W10 | PAL v0.1 冻结 + 第二后端 | 80 tests；[21-pal-freeze](21-pal-freeze.md) |
 | 2026-11-11 | W11（host） | 宽/窄通道 + QEMU 摘要对比 | 82 tests；[22-two-backends](22-two-backends.md) |
 | 2026-11-11 | W12 | D90 评审：条件 Go；D60 未通过 | 82 tests；[23-d90](23-d90-review.md) |
+| 2026-11-11 | H750 | WeAct H750 BSP + OpenOCD 脚本（编译通过，待上板） | [24-weact](24-weact-h750-bringup.md) |

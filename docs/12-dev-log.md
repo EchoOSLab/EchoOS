@@ -23,6 +23,7 @@
 | 2026-11-11 | W10-001 | 功能 | PAL v0.1 冻结 + 第二后端（80 tests） | `d7c82fc` |
 | 2026-11-11 | W11-001 | 功能 | 同一生成图宽/窄通道对比（82 tests） | `207104d` |
 | 2026-11-11 | W12-001 | 评审 | D90：条件 Go；D60 未通过 | 本条目（docs） |
+| 2026-11-11 | H750-001 | 功能/待上板 | WeAct H750 BSP + OpenOCD 脚本（编译通过） | `cd11f98` |
 
 ---
 
@@ -479,6 +480,40 @@ H7 真机启动/抖动                    ⛔ 无硬件，无数据
 - **D-045**：下一阶段先解决硬件，再谈扩展。
 
 **目标收口**：W6–W12 已逐项执行并记录；硬件相关里程碑只做代码/编译/设计，未编造数据。
+
+---
+
+## 2026-11-11 · H750-001 · WeAct H750 BSP（编译通过，待上板）
+
+**目标**：按用户选型 **WeAct STM32H750VBT6 + ST-Link**，提供可烧录/调试的板级支持。
+
+**改动**：
+- `bsp/echo-bsp-weact-h750vb`：启动汇编（栈/向量/`.data`/`.bss`）、FPU/VTOR、DWT 64 MHz 时基、生成图 3 节点 10k 帧、semihosting。
+- `bsp/echo-bsp-weact-h750vb/link.x`：128 KB Flash / 128 KB DTCM / 512 KB AXI。
+- `tools/scripts/h750-run.sh`：OpenOCD 烧录 + `arm semihosting enable`。
+- `docs/24-weact-h750-bringup.md`：SWD 接线、OpenOCD/GDB、常见问题、限制。
+
+**验证**：
+```text
+cargo build --target thumbv7em-none-eabihf -p echo-bsp-weact-h750vb   OK
+ELF: .text 0x30b8 (~12.2 KB), .bss 0x60 (96 B)
+vector: SP=0x20020000, Reset=0x08000041, HardFault 已挂
+cargo test                                                          82 passed
+cargo xtask graph / hello                                           PASS
+```
+**硬件门**：没有 H750 板子，**未上板**；没有启动日志、没有抖动数据。本文不把编译通过写成跑通。
+
+**决策/偏差**：
+- **D-046**：首启 HSI 64 MHz，不先配 PLL 480 MHz（先验证最小启动链路）。
+- **D-047**：首启用 semihosting，不先做 UART（板子无板载 USB-UART）。
+- **D-048**：链接脚本按 128 KB Flash 写死，误用 H743 2 MB 脚本会在链接期暴露。
+- **D-049**：H750 数据必须标注板型/时钟，不能冒充 H743 @480 MHz。
+
+**下一步**：
+1. 上板首启，看到 `EchoOS H750: boot` + `3-node graph OK`；
+2. 配 PLL 480 MHz，改 `CPU_HZ` 并复测 DWT；
+3. UART（PA9/PA10 + USB-TTL）；
+4. W7 真实 PendSV/PSP；W9 逻辑分析仪抖动实验。
 
 ---
 
