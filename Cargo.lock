@@ -51,6 +51,17 @@ name = "echo-bsp-qemu-x86"
 version = "0.1.0"
 
 [[package]]
+name = "echo-bsp-weact-h750vb"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+ "echo-arch-cortex-m",
+ "echo-ipc",
+ "echo-sched",
+ "echo-trace",
+]
+
+[[package]]
 name = "echo-codegen"
 version = "0.1.0"
 
