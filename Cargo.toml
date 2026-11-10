@@ -1,17 +1,31 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/arch/echo-arch-api",
+    "crates/arch/echo-arch-mock",
+    "crates/kernel/echo-sched",
     "bsp/echo-bsp-qemu-cortex-m",
     "bsp/echo-bsp-qemu-riscv-virt",
     "bsp/echo-bsp-qemu-x86",
     "xtask",
 ]
-default-members = ["xtask"]
+# 裸机 BSP 不在默认成员中：裸 cargo build/test 只碰 host 可编译部分
+default-members = [
+    "crates/arch/echo-arch-api",
+    "crates/arch/echo-arch-mock",
+    "crates/kernel/echo-sched",
+    "xtask",
+]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+echo-arch-api = { path = "crates/arch/echo-arch-api" }
+echo-arch-mock = { path = "crates/arch/echo-arch-mock" }
+echo-sched = { path = "crates/kernel/echo-sched" }
 
 [profile.dev]
 panic = "abort"

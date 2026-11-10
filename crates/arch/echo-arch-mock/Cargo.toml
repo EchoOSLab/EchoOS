@@ -1,0 +1,8 @@
+[package]
+name = "echo-arch-mock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+echo-arch-api.workspace = true

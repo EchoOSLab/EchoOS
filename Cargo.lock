@@ -3,6 +3,17 @@
 version = 4
 
 [[package]]
+name = "echo-arch-api"
+version = "0.1.0"
+
+[[package]]
+name = "echo-arch-mock"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+]
+
+[[package]]
 name = "echo-bsp-qemu-cortex-m"
 version = "0.1.0"
 
@@ -13,6 +24,14 @@ version = "0.1.0"
 [[package]]
 name = "echo-bsp-qemu-x86"
 version = "0.1.0"
+
+[[package]]
+name = "echo-sched"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+ "echo-arch-mock",
+]
 
 [[package]]
 name = "xtask"

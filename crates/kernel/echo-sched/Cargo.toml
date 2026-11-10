@@ -1,0 +1,11 @@
+[package]
+name = "echo-sched"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+echo-arch-api.workspace = true
+
+[dev-dependencies]
+echo-arch-mock.workspace = true
