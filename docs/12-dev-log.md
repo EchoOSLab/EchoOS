@@ -16,6 +16,7 @@
 | 2026-11-10 | W3-001 | 功能 | PAL 5 域契约 + MockPlatform + 7 个 conformance | `7f67c68` |
 | 2026-11-10 | W4-001 | 功能 | YAML → 静态图 codegen（生成物 check in + 漂移测试） | `1e317ea` |
 | 2026-11-11 | W5-001 | 功能 | QEMU M7 跑生成图（10k 帧 0 丢包） | `7e6390d` |
+| 2026-11-11 | W6-001 | 功能/阻塞 | DWT 时基 + trace + H7 骨架（硬件门未过） | `cae43db` |
 
 ---
 
@@ -260,6 +261,41 @@ cargo clippy:      无警告
 2. `echo-arch-cortex-m`：SysTick/DWT 时基 + `Arch` 实现；
 3. `echo-trace`：UART 后端；
 4. H7 上复跑同一张生成图；新增 `docs/17-h7-bringup.md`，追加 `W6-001`。
+
+---
+
+## 2026-11-11 · W6-001 · Cortex-M DWT + trace + H7 骨架（硬件门未过）
+
+**目标**：为 H7 bring-up 准备时基与 trace 代码路径，同时明确硬件边界。
+
+**改动**：
+- `crates/arch/echo-arch-cortex-m`：`DwtClock<CPU_HZ>`、`cycles_to_ns`、DWT 使能。
+- `crates/core/echo-trace`：`Sink` trait、`write_str`/`write_bytes`、semihosting 后端。
+- `bsp/echo-bsp-nucleo-h743zi`：H7 启动骨架、link.x、DWT 初始化、semihosting 启动输出。
+- `docs/17-h7-bringup.md`：已实现/未实现/上板验收清单。
+
+**验证**：
+```text
+cargo test                                         48 passed, 0 failed
+cargo build --target thumbv7em-none-eabihf -p echo-bsp-nucleo-h743zi   OK
+```
+
+**硬件门（未过）**：
+- `lsusb` 无 ST-Link；`/dev/ttyACM*` 不存在；
+- 因此**没有** H7 启动日志、没有 UART 输出、没有抖动数据；
+- 明确记录：**编译通过 ≠ 已在 H7 上跑通**。
+
+**决策/偏差**：
+- **D-022**：真机时基用 DWT `CYCCNT`（单次 volatile 读，无中断开销）。
+- **D-023**：首次上板用 semihosting；UART 需要 RCC/引脚配置，后置。
+- **D-024**：无硬件只做编译与设计验证，不产出任何"实测"数字。
+- **D-025**：H7 骨架先最小化（只有 Reset 向量），完整向量表随 UART 一起补。
+
+**下一步（W7）**：
+1. `echo-sched` 抢占调度决策逻辑（静态优先级 + 同优先级 RR）；
+2. `echo-arch-mock` 中断注入与切换序列记录；
+3. Cortex-M PendSV/SVC 汇编先编译通过，真机验证等硬件门；
+4. 新增 `docs/18-preemptive-sched.md`，追加 `W7-001`。
 
 ---
 
