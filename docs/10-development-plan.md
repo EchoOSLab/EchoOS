@@ -60,7 +60,7 @@
 | **W2** ✅ | IPC + 3 节点图 | `echo-ipc`（SPSC `Mailbox`）；`echo-conformance` 的 3 节点图 | 10⁶ 帧 0 丢包；24 tests 全绿 |
 | **W3** ✅ | PAL 契约 | PAL 5 域（Task/Time/Memory/Channel/Observability）；`echo-conformance` 的 MockPlatform | 7 个 conformance 测试；31 tests 全绿 |
 | **W4** ✅ | 代码生成 | `tools/codegen`：YAML 子集 → `static_graph.rs`；生成物 check in + 漂移测试 | 生成图与手写图 trace 一致；40 tests 全绿 |
-| **W5** | QEMU 集成 | `echo-arch-cortex-m`（向量表/link.x/`Arch` 实现）；`echo-trace` semihosting 后端；QEMU 上 1 kHz 槽位 | QEMU M7 跑 3 节点图；**D35 门** |
+| **W5** ✅ | QEMU 集成 | QEMU M7 跑 **codegen 生成的** 3 节点图（10k 帧）；`echo-arch-cortex-m` 真机时基移到 W6 | `cargo xtask graph` PASS；D35 功能部分通过 |
 | **W6** | H7 启动 | `echo-bsp-nucleo-h743zi`、`echo-rt`、UART 输出；M1 最小启动 | 串口 4 行启动日志 |
 | **W7** | 抢占调度 | `echo-arch-cortex-m`：PendSV/SVC/SysTick；`echo-sched` 抢占 + 同优先级 RR；3 任务 | 抢占顺序确定；host 语义测试 ≥ 15 |
 | **W8** | 时间与基准 | `echo-time`（单调钟、延时链表、tickless 最小版）；`echo-bench`（DWT 直方图）；超限检测 | 1 kHz 周期误差 < 1%；超限可检测 |
@@ -182,7 +182,8 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] W2：`echo-ipc` 的 `Mailbox` + 3 节点图（10⁶ 帧、0 丢包）
 - [x] W3：PAL 5 域 trait + mock 后端 + conformance 骨架
 - [x] W4：`tools/codegen`（YAML → `static_graph.rs`），生成图与手写图 trace 一致
-- [ ] W5：`echo-arch-cortex-m` + `echo-trace`，QEMU M7 上跑 3 节点图 + 1 kHz
+- [x] W5：QEMU M7 上跑 codegen 生成的 3 节点图 + 1 kHz（D35 功能部分）
+- [ ] W6：H7 硬件 bring-up（`echo-arch-cortex-m` 真机时基 + `echo-trace` UART）
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -207,3 +208,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-10 | W2 | SPSC `Mailbox` + 3 节点图 | 24 tests；[13-ipc](13-ipc-and-three-node.md) |
 | 2026-11-10 | W3 | PAL 5 域 + `MockPlatform` | 31 tests；[14-pal](14-pal-contract.md) |
 | 2026-11-10 | W4 | YAML → 静态图 codegen | 40 tests；[15-codegen](15-codegen.md) |
+| 2026-11-11 | W5 | QEMU M7 跑生成图（10k 帧 0 丢包） | [16-qemu](16-qemu-integration.md) |

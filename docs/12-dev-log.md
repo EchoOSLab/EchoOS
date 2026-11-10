@@ -15,6 +15,7 @@
 | 2026-11-10 | W2-001 | 功能 | SPSC Mailbox + 3 节点图（10⁶ 帧 0 丢包） | `65e839d` |
 | 2026-11-10 | W3-001 | 功能 | PAL 5 域契约 + MockPlatform + 7 个 conformance | `7f67c68` |
 | 2026-11-10 | W4-001 | 功能 | YAML → 静态图 codegen（生成物 check in + 漂移测试） | `1e317ea` |
+| 2026-11-11 | W5-001 | 功能 | QEMU M7 跑生成图（10k 帧 0 丢包） | `7e6390d` |
 
 ---
 
@@ -221,6 +222,44 @@ cargo xtask hello:   四目标回归 PASS
 1. `echo-arch-cortex-m`：向量表、link.x、`Arch` 实现、semihosting/UART trace；
 2. QEMU `mps2-an500` 上跑 3 节点图 + 1 kHz 槽位；
 3. 新增 `docs/16-qemu-integration.md`，追加 `W5-001`。
+
+---
+
+## 2026-11-11 · W5-001 · QEMU M7 跑生成图
+
+**目标**：把 codegen 生成的静态调度表放到 Cortex-M7 裸机上跑，验证调度 + IPC + 生成物集成。
+
+**改动**：
+- `bsp/echo-bsp-qemu-cortex-m/src/graph.rs`：独立 `echo-arm-graph` bin，TickArch + 生成图 + semihosting。
+- `dataflows/generated/three_node.rs`：生成物移到共享目录，host conformance 与 BSP 共用同一份。
+- `tools/scripts/qemu-graph.sh` + `cargo xtask graph`。
+- `docs/16-qemu-integration.md`：结构、边界、决策。
+
+**验证**：
+```text
+cargo xtask graph
+PASS  qemu-m7 3-node graph (exit=0, 25B)
+
+cargo xtask hello
+四目标 PASS
+
+cargo test:        40 passed, 0 failed
+cargo fmt --check: OK
+cargo clippy:      无警告
+```
+
+**决策/偏差**：
+- **D-017**：QEMU 用 `TickArch`（每帧显式推进），不读硬件时基；QEMU 不产出抖动数字。
+- **D-018**：图 demo 用独立 bin `echo-arm-graph`，`echo-arm` 的 Hello 矩阵保留为回归基线。
+- **D-019**：QEMU 用 semihosting，H7 真机换 UART。
+- **D-020**：生成物放 `dataflows/generated/`，host conformance 与 QEMU BSP 共用，避免两份漂移。
+- **D-021（偏差）**：W5 未引入 `echo-arch-cortex-m`；真机时基（SysTick/DWT）与 H7 bring-up 一起做，避免为 QEMU 造一个假 Arch。
+
+**下一步（W6）**：
+1. 确认 `NUCLEO-H743ZI2` + 逻辑分析仪到货；没有硬件只做设计与编译验证，**不造假数据**；
+2. `echo-arch-cortex-m`：SysTick/DWT 时基 + `Arch` 实现；
+3. `echo-trace`：UART 后端；
+4. H7 上复跑同一张生成图；新增 `docs/17-h7-bringup.md`，追加 `W6-001`。
 
 ---
 

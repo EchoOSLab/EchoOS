@@ -23,6 +23,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [13-ipc-and-three-node.md](13-ipc-and-three-node.md) | SPSC `Mailbox` 与 3 节点图：环形语义、内存序、10⁶ 帧验收 | 内核开发者 |
 | [14-pal-contract.md](14-pal-contract.md) | PAL 5 域契约：语义抽象、能力矩阵、`MockPlatform`、7 个 conformance | 内核 / DoraOS 开发者 |
 | [15-codegen.md](15-codegen.md) | YAML → 静态调度图：输入子集、校验、生成物防漂移、9 个测试 | 内核 / 工具链开发者 |
+| [16-qemu-integration.md](16-qemu-integration.md) | QEMU Cortex-M7 集成：生成图、`TickArch` 边界、D35 功能验收 | 内核开发者 |
 
 ## 一页纸摘要
 
