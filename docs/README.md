@@ -25,6 +25,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [15-codegen.md](15-codegen.md) | YAML → 静态调度图：输入子集、校验、生成物防漂移、9 个测试 | 内核 / 工具链开发者 |
 | [16-qemu-integration.md](16-qemu-integration.md) | QEMU Cortex-M7 集成：生成图、`TickArch` 边界、D35 功能验收 | 内核开发者 |
 | [17-h7-bringup.md](17-h7-bringup.md) | H7 bring-up：DWT 时基、trace Sink、硬件门与上板验收清单 | 内核 / 硬件开发者 |
+| [18-preemptive-sched.md](18-preemptive-sched.md) | 抢占调度：位图 + RR、10 个测试、PendSV 占位与边界 | 内核开发者 |
 
 ## 一页纸摘要
 

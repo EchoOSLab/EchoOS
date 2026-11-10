@@ -17,6 +17,7 @@
 | 2026-11-10 | W4-001 | 功能 | YAML → 静态图 codegen（生成物 check in + 漂移测试） | `1e317ea` |
 | 2026-11-11 | W5-001 | 功能 | QEMU M7 跑生成图（10k 帧 0 丢包） | `7e6390d` |
 | 2026-11-11 | W6-001 | 功能/阻塞 | DWT 时基 + trace + H7 骨架（硬件门未过） | `cae43db` |
+| 2026-11-11 | W7-001 | 功能/部分 | 抢占决策 + RR；PendSV/SVC 占位 | `6500987` |
 
 ---
 
@@ -296,6 +297,39 @@ cargo build --target thumbv7em-none-eabihf -p echo-bsp-nucleo-h743zi   OK
 2. `echo-arch-mock` 中断注入与切换序列记录；
 3. Cortex-M PendSV/SVC 汇编先编译通过，真机验证等硬件门；
 4. 新增 `docs/18-preemptive-sched.md`，追加 `W7-001`。
+
+---
+
+## 2026-11-11 · W7-001 · 抢占调度决策 + RR（PendSV 占位）
+
+**目标**：实现静态优先级抢占与同优先级 RR 的决策逻辑，host 完全可验证。
+
+**改动**：
+- `crates/kernel/echo-sched/src/preemptive.rs`：`PreemptiveScheduler`（`priority_bitmap` + per-priority `task_mask` + RR cursor）。
+- `crates/kernel/echo-sched/tests/preemptive.rs`：10 个行为测试。
+- `crates/arch/echo-arch-cortex-m/src/context.rs`：PendSV/SVC **占位**（`bx lr`）。
+- `docs/18-preemptive-sched.md`：语义、复杂度、限制、决策。
+
+**验证**：
+```text
+cargo test -p echo-sched --test preemptive   10 passed
+cargo test                                  58 passed, 0 failed
+cargo clippy                                无警告
+cargo build --target thumbv7em ...          通过（含占位汇编）
+cargo xtask graph / hello                   仍 PASS
+```
+
+**决策/偏差**：
+- **D-026**：`priority_bitmap + task_mask`，最高优先级与 RR 都是 O(1)。
+- **D-027**：调度决策与 `Arch` 解耦，纯 host 可测。
+- **D-028**：PendSV/SVC 只占位，**不假装上下文切换已完成**；真实 TCB/PSP/栈帧需硬件门。
+- **D-029**：RR 由 `yield_now` 驱动，时间片 tick 留到 W8。
+
+**下一步（W8）**：
+1. `echo-time`：单调钟、延时链表、`sleep_until`；
+2. `echo-bench`：P50/P99/P99.9/max 直方图 + JSON/CSV；
+3. DWT/SysTick 回绕处理（真机门）；
+4. 新增 `docs/19-time-and-bench.md`，追加 `W8-001`。
 
 ---
 

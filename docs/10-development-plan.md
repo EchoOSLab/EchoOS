@@ -62,7 +62,7 @@
 | **W4** ✅ | 代码生成 | `tools/codegen`：YAML 子集 → `static_graph.rs`；生成物 check in + 漂移测试 | 生成图与手写图 trace 一致；40 tests 全绿 |
 | **W5** ✅ | QEMU 集成 | QEMU M7 跑 **codegen 生成的** 3 节点图（10k 帧）；`echo-arch-cortex-m` 真机时基移到 W6 | `cargo xtask graph` PASS；D35 功能部分通过 |
 | **W6** ⚠️ | H7 bring-up | Cortex-M DWT 时基 + `echo-trace` + H7 骨架；UART 待硬件 | 代码编译通过；**硬件门未过**（无探针/板卡），无真机日志 |
-| **W7** | 抢占调度 | `echo-arch-cortex-m`：PendSV/SVC/SysTick；`echo-sched` 抢占 + 同优先级 RR；3 任务 | 抢占顺序确定；host 语义测试 ≥ 15 |
+| **W7** ⚠️ | 抢占调度 | `PreemptiveScheduler`（位图 + RR）+ 10 host tests；PendSV/SVC 占位 | 决策逻辑通过；真机上下文切换待硬件门 |
 | **W8** | 时间与基准 | `echo-time`（单调钟、延时链表、tickless 最小版）；`echo-bench`（DWT 直方图）；超限检测 | 1 kHz 周期误差 < 1%；超限可检测 |
 | **W9** | 真机证据 | H7 上 3 节点图 + 72h 稳定性（可先 8h）；`evidence/` v1 | 真机 P50/P99/max + 复现脚本；**D60 门** |
 | **W10** | PAL 冻结 | PAL v0.1 冻结；`dora-pal-conformance` 用例对接；Linux/mock 第二后端 | 两后端 conformance 100% |
@@ -185,7 +185,9 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] W5：QEMU M7 上跑 codegen 生成的 3 节点图 + 1 kHz（D35 功能部分）
 - [x] W6 代码路径：`echo-arch-cortex-m`（DWT）+ `echo-trace` + H7 骨架编译通过
 - [ ] W6 硬件门：H7 上板启动（缺 ST-Link / 板卡，无真机日志）
-- [ ] W7：抢占调度 + 上下文切换（host + MockArch 可验证）
+- [x] W7 决策逻辑：抢占 + RR 位图调度（host 10 个测试）
+- [ ] W7 硬件门：PendSV/PSP 真实上下文切换（缺 H7）
+- [ ] W8：`echo-time` + `echo-bench`（host 可测）
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -212,3 +214,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-10 | W4 | YAML → 静态图 codegen | 40 tests；[15-codegen](15-codegen.md) |
 | 2026-11-11 | W5 | QEMU M7 跑生成图（10k 帧 0 丢包） | [16-qemu](16-qemu-integration.md) |
 | 2026-11-11 | W6（部分） | DWT 时基 + trace + H7 骨架；硬件门未过 | 48 tests；[17-h7](17-h7-bringup.md) |
+| 2026-11-11 | W7（部分） | 抢占决策 + RR；PendSV 占位 | 58 tests；[18-preempt](18-preemptive-sched.md) |
