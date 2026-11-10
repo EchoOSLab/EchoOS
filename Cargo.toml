@@ -16,6 +16,7 @@ members = [
     "bsp/echo-bsp-qemu-riscv-virt",
     "bsp/echo-bsp-qemu-x86",
     "bsp/echo-bsp-nucleo-h743zi",
+    "bsp/echo-bsp-weact-h750vb",
     "xtask",
 ]
 # 裸机 BSP 不在默认成员中：裸 cargo build/test 只碰 host 可编译部分

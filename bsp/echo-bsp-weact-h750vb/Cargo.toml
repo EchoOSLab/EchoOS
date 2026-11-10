@@ -1,0 +1,16 @@
+[package]
+name = "echo-bsp-weact-h750vb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "echo-h750"
+path = "src/main.rs"
+
+[dependencies]
+echo-arch-api.workspace = true
+echo-arch-cortex-m.workspace = true
+echo-ipc.workspace = true
+echo-sched.workspace = true
+echo-trace.workspace = true
