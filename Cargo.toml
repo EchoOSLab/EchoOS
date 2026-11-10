@@ -3,7 +3,9 @@ resolver = "3"
 members = [
     "crates/arch/echo-arch-api",
     "crates/arch/echo-arch-mock",
+    "crates/kernel/echo-ipc",
     "crates/kernel/echo-sched",
+    "crates/test/echo-conformance",
     "bsp/echo-bsp-qemu-cortex-m",
     "bsp/echo-bsp-qemu-riscv-virt",
     "bsp/echo-bsp-qemu-x86",
@@ -13,7 +15,9 @@ members = [
 default-members = [
     "crates/arch/echo-arch-api",
     "crates/arch/echo-arch-mock",
+    "crates/kernel/echo-ipc",
     "crates/kernel/echo-sched",
+    "crates/test/echo-conformance",
     "xtask",
 ]
 
@@ -25,6 +29,7 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 echo-arch-api = { path = "crates/arch/echo-arch-api" }
 echo-arch-mock = { path = "crates/arch/echo-arch-mock" }
+echo-ipc = { path = "crates/kernel/echo-ipc" }
 echo-sched = { path = "crates/kernel/echo-sched" }
 
 [profile.dev]

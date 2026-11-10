@@ -1,0 +1,12 @@
+[package]
+name = "echo-conformance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+echo-arch-mock.workspace = true
+echo-ipc.workspace = true
+echo-sched.workspace = true

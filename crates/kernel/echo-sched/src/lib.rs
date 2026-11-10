@@ -11,7 +11,7 @@
 use echo_arch_api::Arch;
 
 /// 一个槽位的定义。
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug)]
 pub struct TaskDef {
     /// 任务名（用于 trace）。
     pub name: &'static str,

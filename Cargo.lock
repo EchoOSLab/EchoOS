@@ -26,6 +26,19 @@ name = "echo-bsp-qemu-x86"
 version = "0.1.0"
 
 [[package]]
+name = "echo-conformance"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-mock",
+ "echo-ipc",
+ "echo-sched",
+]
+
+[[package]]
+name = "echo-ipc"
+version = "0.1.0"
+
+[[package]]
 name = "echo-sched"
 version = "0.1.0"
 dependencies = [
