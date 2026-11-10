@@ -51,7 +51,13 @@ pub enum SchedError {
     ZeroFrame,
     /// 槽位预算之和超过帧长。
     BudgetExceeded { used_ns: u64, frame_ns: u64 },
+    /// 静态任务表已满。
+    TaskCapacityExceeded,
+    /// 优先级超出合法范围。
+    InvalidPriority { priority: u8 },
 }
+
+pub mod preemptive;
 
 /// 静态循环执行体。
 ///

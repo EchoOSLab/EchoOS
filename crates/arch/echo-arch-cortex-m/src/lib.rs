@@ -11,6 +11,9 @@
 
 use echo_arch_api::Arch;
 
+#[cfg(target_arch = "arm")]
+mod context;
+
 const DEMCR: *mut u32 = 0xE000_EDFC as *mut u32;
 const DWT_CTRL: *mut u32 = 0xE000_1000 as *mut u32;
 const DWT_CYCCNT: *mut u32 = 0xE000_1004 as *mut u32;
