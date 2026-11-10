@@ -1,10 +1,37 @@
-# EchoOS 设计文档
+# EchoOS 项目文档与状态
 
-EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**硬实时操作系统（RTOS）**，采用 Cargo workspace 多 crate 布局。它运行在机器人的**小脑层（协调）与脊髓层（关节执行）**，在非确定性的 AI 栈与必须可靠的物理执行器之间建立一道不可绕过的实时边界。
+EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**硬实时操作系统（RTOS，阶段一）**。
+它运行在机器人的**小脑层（协调）与脊髓层（关节执行）**，在非确定性的 AI 栈与必须可靠的物理执行器之间建立实时边界。
 
-本目录是项目的设计基线（design baseline）。代码实现应与本文档保持一致；当设计发生变化时，**先改文档再改代码**。
+> **最后更新：2026-11-11** ｜ 阶段一 ｜ **82 tests passed** ｜ QEMU 四目标 PASS ｜ PAL v0.1 冻结 ｜ **D90：条件 Go**
+> **真机：WeAct STM32H750VBT6 BSP 编译通过，板卡未到货——没有启动日志、没有抖动数据。**
 
-## 文档索引
+## 0. 一分钟状态
+
+| 维度 | 状态 | 证据 |
+|---|---|---|
+| host 内核 / 调度 / IPC / 时间 | ✅ | `cargo test`：82 passed |
+| codegen（YAML → 静态调度图） | ✅ | 生成物防漂移测试 |
+| PAL v0.1 + 第二后端 | ✅ | 4 个双后端 conformance |
+| QEMU 功能验证 | ✅ | `cargo xtask hello` 四目标；`cargo xtask graph` M7 10k 帧 |
+| WeAct H750 BSP | ⚠️ 编译通过 | `cargo build ... -p echo-bsp-weact-h750vb` |
+| H750 上板首启 | ⛔ 未做 | 无板卡 |
+| 真实 PendSV 上下文切换 | ⛔ 占位 | W7 仍是 `bx lr` |
+| 480 MHz / UART | ⛔ 未做 | 首启仅 HSI 64 MHz |
+| 真机抖动 / deadline（D60） | ⛔ 无数据 | 无 H750 + 逻辑分析仪实测 |
+| D90 评审 | ⚠️ 条件 Go | [23-d90-review.md](23-d90-review.md) |
+
+## 1. 先读哪几篇
+
+| 目的 | 文档 |
+|---|---|
+| 了解为什么做、边界在哪 | [02 需求基线](02-embodied-ai-robot-profile.md) |
+| 看完整排期与完成度 | [10 开发计划](10-development-plan.md) |
+| 看 D90 结论与证据 | [23 D90 评审](23-d90-review.md) |
+| 板子到了怎么上板/调试 | [24 WeAct H750 上板](24-weact-h750-bringup.md) |
+| 看每次提交做了什么 | [12 开发日志](12-dev-log.md) |
+
+## 2. 文档索引
 
 | 文档 | 内容 | 读者 |
 | --- | --- | --- |
@@ -27,59 +54,76 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [17-h7-bringup.md](17-h7-bringup.md) | H7 bring-up：DWT 时基、trace Sink、硬件门与上板验收清单 | 内核 / 硬件开发者 |
 | [18-preemptive-sched.md](18-preemptive-sched.md) | 抢占调度：位图 + RR、10 个测试、PendSV 占位与边界 | 内核开发者 |
 | [19-time-and-bench.md](19-time-and-bench.md) | 时间队列、bench 直方图（P50/P99/P99.9）、DWT 回绕 | 内核开发者 |
-| [20-h7-evidence.md](20-h7-evidence.md) | H7 抖动实验设计、验收阈值、报告模板（⛔ 硬件门，无数据） | 内核 / 硬件开发者 |
+| [20-h7-evidence.md](20-h7-evidence.md) | H7/H750 抖动实验设计、验收阈值、报告模板（⛔ 硬件门，无数据） | 内核 / 硬件开发者 |
 | [21-pal-freeze.md](21-pal-freeze.md) | PAL v0.1 冻结：版本策略、第二后端、双后端 conformance | 内核 / DoraOS 开发者 |
 | [22-two-backends.md](22-two-backends.md) | 同一份 YAML：宽/窄通道与 QEMU 摘要对比 | 内核 / DoraOS 开发者 |
 | [23-d90-review.md](23-d90-review.md) | **D90 评审**：证据表、D35/D60/D90 判定、条件 Go 与 No-Go | 决策者 |
 | [24-weact-h750-bringup.md](24-weact-h750-bringup.md) | WeAct H750VBT6 上板：SWD 接线、OpenOCD/GDB、首启与限制 | 内核 / 硬件开发者 |
 
-## 一页纸摘要
+## 3. 项目摘要
 
-**要做什么**：一个**类 FreeRTOS** 的硬实时操作系统——精简宏内核 + 清晰移植层 + 可裁剪独立组件，但用 Rust 把 FreeRTOS 里靠约定维持的部分变成编译期保证，并加上**面向实时控制的增强**（零抖动循环执行体、抖动可量化、ISR-first 控制环）。**零外部 crate 依赖**，API 面向 Rust 原生。
+**要做什么**：一个类 FreeRTOS 的硬实时操作系统——精简宏内核 + 清晰移植层 + 可裁剪组件，但用 Rust 把 FreeRTOS 里靠约定维持的部分变成编译期保证，并加上面向实时控制的增强（零抖动循环执行体、抖动可量化、ISR-first 控制环）。**L1 零外部 Rust crate 依赖**，API 面向 Rust 原生。
 
-**★ 分阶段交付，当前只做阶段一**（[ADR-0019](05-design-decisions.md#adr-0019--分阶段交付实时控制优先)）：
+**分阶段交付（只做阶段一）**：
 
-| 阶段 | 内容 | 产出 | 状态 |
-| --- | --- | --- | --- |
-| **一 · 实时控制内核** | 调度/同步/IPC/内存/时间/驱动 + 循环执行体 | 能跑电机、**抖动可量化**、零依赖的 RTOS | ★ **当前专注** |
-| 二 · 机器人运动控制 | 现场总线 + 多关节协调 | 多关节机器人能协调运动 | 后续 |
-| 三 · AI 接入 | `echo-bridge` + `echo-safety` | AI 能安全驱动机器人 | 后续 |
-
-**核心取舍**：
-
-- **★ 两种调度模式并存** —— 控制域用**静态循环执行体**（零抖动，编译期确定的调度表），服务域用**优先级抢占线程**。FreeRTOS 的 tick 抖动（1 ms）对多速率控制完全不可接受。见 [ADR-0016](05-design-decisions.md#adr-0016--循环执行体作为一等调度模式)。
-- **★ 抖动优先于延迟** —— 稳定地晚 50 µs 无害（控制器已包含该常数延迟），偶尔晚 50 µs 会激起振荡。目标改为 `抖动 P99−P50 < 200 ns`，且 `echo-bench` 必须报告分布而非单值。
-- **★ AI 命令是"建议"，不是"命令"**（阶段三）—— 安全层是不可绕过的仲裁者，且永远有一条当前安全轨迹在跑。AI 失联只让它平滑减速，不会让它失控。**架构不变式现在固化，实现放到阶段三。** 见 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。
-- **Cortex-M7 + D-Cache + TCM 是必答题** —— 480 MHz 上一次 D-Cache Miss 的代价可能超过整个上下文切换时间。硬实时资产放 TCM，MPU 显式声明缓存属性，DMA 缓冲区默认非缓存。见 [ADR-0018](05-design-decisions.md#adr-0018--内存分层tcm-放实时代码与数据缓存属性显式声明)。
-- **★ POSIX 是可选的兼容分区，不是底座语义** —— 硬实时域保持无堆、无 POSIX；C 服务跑在时间分区 + MPU 隔离的 POSIX 域，预算超限即挂起，且不在安全 case 内。见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
-- **零外部 crate 依赖（L1 完全自研）** —— `[dependencies]` 中外部 crate 恒为 0，所有进入镜像的代码都是自研的。寄存器定义通过**自研 `svdgen` 从 CMSIS-SVD 生成**（不是手写）。代价是工期延长约一个数量级、第三方 `embedded-hal` 驱动不可直接用、首版无 TCP/IP。见 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) / [ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成)。⚠️ 唯一例外：POSIX 分区的 picolibc，见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
-- **宏内核而非微内核** —— MCU 上微内核的 MPU 重编程与 IPC 开销过大。据 Cortex-M4 上的对比研究，Tock 的中断延迟约 15.6 µs，而 RTIC 约 4 µs，差距主要来自 MPU 配置与任务抢占。EchoOS 选择"单地址空间 + MPU 静态分区"，把 MPU 当作纵深防御而非唯一隔离手段。
-- **线程模型而非 async 执行器** —— 硬实时要求有界的最坏响应时间，协作式调度无法提供。保留 `echo-async` 作为**应用侧可选适配层**，不作为内核调度基础。
-- **内核泛型化 over `Arch` trait** —— 零开销单态化，且让内核逻辑能在 host 上通过 `echo-arch-mock` 做单元测试。这是本方案里**质量收益最大的一个决策**。
-- **只依赖 stable Rust** —— `naked_asm!` 自 Rust 1.88 起稳定，上下文切换无需 nightly。当前工具链为 1.98.1 / edition 2024。
-
-**当前环境缺口**（必须优先补齐，见 [06](07-toolchain-and-testing.md)）：
-
-- ❌ 未安装交叉编译 target（`thumbv7m-none-eabi`、`thumbv7em-none-eabihf`、`riscv32imac-unknown-none-elf`）
-- ❌ 未安装 QEMU（`qemu-system-arm` / `qemu-system-misc`）
-- ❌ 未安装 `probe-rs`（真机烧录调试）
-- ✅ 已有 `rust-lld` / `rust-objcopy`（无需额外 binutils）
-
-**已决定的关键问题**：
-
-| 日期 | 问题 | 决定 |
+| 阶段 | 内容 | 状态 |
 | --- | --- | --- |
-| 2026-09-22 | 目标场景 | **具身智能机器人** → [02](02-embodied-ai-robot-profile.md) |
-| 2026-09-22 | "从零开发"的边界 | **L1 完全自研**，零外部 crate 依赖 → [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) |
-| 2026-09-22 | 寄存器定义方式 | 自研 SVD 代码生成，**不手写** → [ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成) |
-| 2026-11-10 | POSIX 兼容性 | **可选 PSE51 子集 + 时间分区**；硬实时域无 POSIX → [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) |
+| **一 · 实时控制内核** | 调度/同步/IPC/内存/时间/驱动 + 循环执行体 | ★ 当前 |
+| 二 · 机器人运动控制 | 现场总线 + 多关节协调 | 后续（Q8 未定） |
+| 三 · AI 接入 | `echo-bridge` + `echo-safety` | 后续 |
 
-**⚠️ 当前阻塞项（两个最高优先级）**：
+**已经落地的核心取舍**：
 
-1. **[Q8 · 现场总线选型](09-risks-and-open-questions.md#q8--现场总线选型--最高优先级)** —— EtherCAT（< 100 ns 同步，但自研需 2–4 年，**与 L1 直接冲突**）vs CAN-FD（~50 µs，自研 3–6 月，符合 L1）。**这决定项目最难的一块是否在范围内，也决定 L1 的适用范围是否需要调整。**
-2. **[Q9 · 硬件平台](09-risks-and-open-questions.md#q9--硬件平台--最高优先级)** —— 决定 M1 的第一块 SVD 用哪个芯片，以及是否立即引入 D-Cache/TCM 复杂度。
+- **两种调度模式**：控制域静态循环执行体；服务域静态优先级抢占 + RR。抢占决策逻辑已在 host 验证，真实上下文切换待真机。
+- **抖动优先于延迟**：`echo-bench` 报告 P50/P99/P99.9/max 分布，而不是单值。
+- **Cortex-M7 + D-Cache/TCM**：硬实时资产放 TCM；H750/H743 都满足，H750 是当前低成本选择。
+- **POSIX 是可选的 PSE51 子集分区**：硬实时域不链接 picolibc；当前只做 ADR 与边界，不做实现。
+- **内核泛型化 over `Arch`**：同一套内核逻辑可在 host（MockArch）与 Cortex-M（DWT）上跑。
+- **零外部 crate**：`cargo test` 与裸机镜像均无第三方 Rust 依赖。
 
-**建议的第一步**：见 [09 §9.5](09-risks-and-open-questions.md#95-下一步行动清单)。两个关键动作：
+## 4. 当前实现边界
 
-- **在最小 workspace 上先验证 `svdgen` 可行性** —— L1 策略的成败取决于此
-- **尽早做 V1 垂直切片**（[08 §8.2](08-roadmap.md#-垂直切片本路线图最重要的方法论调整)）—— 用示波器测出真实的抖动分布，而不是在纸面上讨论预算
+**已实现并验证**：
+
+- `echo-sched`：循环执行体 + 抢占决策（位图/RR）；host 10+8 测试。
+- `echo-ipc`：SPSC `Mailbox`，10⁶ 帧 3 节点图 0 丢包。
+- `echo-time` / `echo-bench`：延时队列、DWT 回绕、P50/P99/P99.9。
+- `echo-pal-api`：PAL v0.1 冻结，两后端 conformance。
+- `tools/codegen`：YAML → 静态调度图，生成物防漂移。
+- QEMU：Cortex-M3/M7、RISC-V、x86_64 UEFI 四目标 Hello；M7 生成图 10k 帧。
+- `echo-bsp-weact-h750vb`：H750 启动汇编、向量表、FPU/VTOR、DWT 64 MHz、生成图 10k 帧、semihosting。
+
+**明确未完成**：
+
+- ❌ H750 上板首启（板卡未到货）；
+- ❌ PLL 480 MHz、UART（PA9/PA10）、真实 PendSV/PSP 上下文切换；
+- ❌ H750/H7 真机抖动、deadline、72h 稳定性；
+- ❌ 现场总线（EtherCAT/CAN-FD）与多关节控制（阶段二）；
+- ❌ POSIX 分区实现（阶段三前只保留 ADR）。
+
+## 5. 当前阻塞与下一步
+
+1. **H750 到货后首启**：看到 `EchoOS H750: boot` + `3-node graph OK`，见 [24](24-weact-h750-bringup.md)。
+2. **PLL 480 MHz + UART**：改 `CPU_HZ`、加 USART1；在此之前数据只能标 `H750 @64 MHz`。
+3. **真实上下文切换**：PendSV/PSP/TCB 栈帧，替换当前 `bx lr` 占位。
+4. **W9 真机抖动**：买 8 通道逻辑分析仪，按 [20](20-h7-evidence.md) 做 A/B 实验；D60 未通过前，D90 维持"条件 Go"。
+5. **Q8 现场总线**：阶段二的决策，当前不影响内核。
+
+## 6. 验证命令
+
+```bash
+cargo test                  # 82 passed
+cargo xtask hello           # QEMU 四目标
+cargo xtask graph           # QEMU M7：生成图 10k 帧
+cargo build --target thumbv7em-none-eabihf -p echo-bsp-weact-h750vb
+./tools/scripts/h750-run.sh # 板子到货后：OpenOCD + semihosting
+```
+
+环境：Rust 1.99.0、QEMU 6.2.0、OpenOCD、gdb-multiarch、probe-rs 均已安装。
+
+## 7. 状态口径（防止自欺）
+
+- host/QEMU 通过 **不等于** 真机实时性通过；两者只证明功能与语义。
+- H750 数据必须标注 **板型 + 时钟 + 构建指纹**；64 MHz 数据不能写成 480 MHz。
+- 没有逻辑分析仪/CSV 的"抖动数字"一律不写。
+- D90 当前是 **条件 Go**，不是完成；D60 未通过。
