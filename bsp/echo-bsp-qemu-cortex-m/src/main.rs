@@ -32,11 +32,8 @@ Reset_Handler:
     ldr  r1, =hello_msg
     bkpt 0xAB
 
-    @ ARM semihosting SYS_EXIT (op = 0x18), ADP_Stopped_ApplicationExit
-    movs r0, #0x18
-    movw r1, #0x0026
-    movt r1, #0x0002
-    bkpt 0xAB
+    @ 退出或常驻由 Rust 侧按 feature 决定
+    bl   platform_after_print
 
 1:  b 1b
     .pool
@@ -47,3 +44,21 @@ hello_msg:
     .asciz "Hello EchoOS\r\n"
 "#
 );
+
+#[unsafe(no_mangle)]
+extern "C" fn platform_after_print() -> ! {
+    #[cfg(not(feature = "gui"))]
+    unsafe {
+        // ARM semihosting SYS_EXIT (0x18), ADP_Stopped_ApplicationExit
+        core::arch::asm!(
+            "movs r0, #0x18",
+            "movw r1, #0x0026",
+            "movt r1, #0x0002",
+            "bkpt 0xAB",
+            options(noreturn)
+        );
+    }
+    loop {
+        core::hint::spin_loop();
+    }
+}

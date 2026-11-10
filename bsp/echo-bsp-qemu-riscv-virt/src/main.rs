@@ -19,10 +19,8 @@ _start:
     la      a0, hello_msg
     call    puts
 
-    # sifive_test 在 QEMU virt 的 0x100000，写 0x5555 让 QEMU 干净退出
-    li      t0, 0x100000
-    li      t1, 0x5555
-    sw      t1, 0(t0)
+    # 退出或常驻由 Rust 侧按 feature 决定
+    call    platform_after_print
 
 1:  wfi
     j       1b
@@ -43,3 +41,21 @@ hello_msg:
     .asciz  "Hello EchoOS\r\n"
 "#
 );
+
+#[allow(unreachable_code)]
+#[unsafe(no_mangle)]
+extern "C" fn platform_after_print() -> ! {
+    #[cfg(not(feature = "gui"))]
+    unsafe {
+        // sifive_test @ 0x100000：写 0x5555 让 QEMU 干净退出
+        core::arch::asm!(
+            "li t0, 0x100000",
+            "li t1, 0x5555",
+            "sw t1, 0(t0)",
+            options(noreturn)
+        );
+    }
+    loop {
+        core::hint::spin_loop();
+    }
+}

@@ -6,3 +6,7 @@ edition.workspace = true
 [[bin]]
 name = "echo-x86"
 path = "src/main.rs"
+
+[features]
+# 打印后不退出，保持 QEMU 图形窗口常驻（手动看画面用）
+gui = []
