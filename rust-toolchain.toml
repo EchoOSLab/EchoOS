@@ -1,0 +1,11 @@
+[toolchain]
+# 先用 stable（当前 = 1.99.0）；M0 收尾时再钉死具体版本号
+channel = "stable"
+components = ["rustfmt", "clippy"]
+targets = [
+    "thumbv7m-none-eabi",
+    "thumbv7em-none-eabihf",
+    "riscv32imac-unknown-none-elf",
+    "x86_64-unknown-uefi",
+]
+profile = "minimal"

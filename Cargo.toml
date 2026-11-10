@@ -1,6 +1,20 @@
-[package]
-name = "echoos"
+[workspace]
+resolver = "3"
+members = [
+    "bsp/echo-bsp-qemu-cortex-m",
+    "bsp/echo-bsp-qemu-riscv",
+    "bsp/echo-bsp-qemu-x86",
+    "xtask",
+]
+default-members = ["xtask"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
 
-[dependencies]
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

@@ -1,0 +1,8 @@
+[package]
+name = "echo-bsp-qemu-cortex-m"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "echo-arm"
+path = "src/main.rs"

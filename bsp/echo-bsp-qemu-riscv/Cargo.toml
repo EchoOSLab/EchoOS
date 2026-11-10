@@ -1,0 +1,8 @@
+[package]
+name = "echo-bsp-qemu-riscv"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "echo-riscv"
+path = "src/main.rs"

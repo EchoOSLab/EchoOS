@@ -1,0 +1,12 @@
+[alias]
+xtask = "run --package xtask --"
+
+# QEMU runners：cargo run --target <t> -p <bsp> 会直接把 ELF 路径追加到命令行
+[target.thumbv7m-none-eabi]
+runner = "qemu-system-arm -M mps2-an385 -cpu cortex-m3 -nographic -semihosting -kernel"
+
+[target.thumbv7em-none-eabihf]
+runner = "qemu-system-arm -M mps2-an500 -cpu cortex-m7 -nographic -semihosting -kernel"
+
+[target.riscv32imac-unknown-none-elf]
+runner = "qemu-system-riscv32 -M virt -nographic -bios none -kernel"
