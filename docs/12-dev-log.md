@@ -12,6 +12,7 @@
 | 2026-11-10 | M0-001 | 工程 | workspace + 四目标 QEMU `Hello EchoOS` | `2644974`…`b902f11` |
 | 2026-11-10 | W1-001 | 功能 | `trait Arch` + `MockArch` + `CyclicExecutive` | `a981fec` |
 | 2026-11-10 | W1-002 | 文档 | W1 日志与计划进度跟踪 | 本条目 |
+| 2026-11-10 | W2-001 | 功能 | SPSC Mailbox + 3 节点图（10⁶ 帧 0 丢包） | `65e839d` |
 
 ---
 
@@ -110,6 +111,42 @@ cargo xtask hello: 四目标仍 PASS（回归）
 **验证**：文档间相对链接与锚点检查通过（0 broken）。
 
 **下一步**：W2 的 `Mailbox` 与 3 节点图；完成后追加 W2-001。
+
+---
+
+## 2026-11-10 · W2-001 · SPSC Mailbox + 3 节点图
+
+**目标**：把 sensor → control → actuator 串成静态图，证明 10⁶ 帧、0 丢包、顺序正确。
+
+**改动**：
+- `crates/kernel/echo-ipc/src/lib.rs`：`Mailbox<const N>`（u32 载荷、`try_send`/`try_recv`、`AtomicU32` 环形、零 `unsafe`）+ 9 个单测。
+- `crates/kernel/echo-ipc/tests/spsc.rs`：双线程 SPSC 100k 条 FIFO 测试。
+- `crates/test/echo-conformance/tests/three_node.rs`：3 节点图 10⁶ 帧。
+- `docs/13-ipc-and-three-node.md`：契约、内存序、测试与限制。
+
+**验证**：
+```text
+cargo test
+echo-ipc 单测:            9 passed
+echo-ipc spsc:            1 passed（双线程 100k，FIFO）
+echo-conformance:         1 passed（10^6 帧，0 丢包，sum 正确）
+累计 24 passed, 0 failed
+cargo fmt --check:        OK
+cargo clippy:             无警告
+cargo xtask hello:        四目标回归 PASS
+```
+
+**决策/偏差**：
+- **D-005**：v0 载荷固定 `u32`。`AtomicU64` 在 thumbv7m/riscv32 上没有 64 位原子操作，泛型载荷留到 M4 的池化消息。
+- **D-006**：保留一个空槽区分满/空，容量 = `N-1`；不引入额外 count 原子。
+- **D-007**：全原子实现 + `forbid(unsafe_code)`，守住 R3 的 `echo-ipc` unsafe = 0，可直接放 `static`。
+- **D-008**：3 节点图放 `crates/test/echo-conformance`，跨 crate 验收集中管理。
+- **偏差**：W2 原计划还包含 `CyclicExecutive`，它已在 W1 完成；W2 实际只做 IPC + 图。
+
+**下一步（W3）**：
+1. PAL 5 域（Task/Time/Memory/Channel/Observability）trait 与 mock 后端；
+2. `echo-conformance` 增加 PAL 用例骨架；
+3. 与 DoraOS 侧对齐 `dora-pal-conformance` 的用例命名。
 
 ---
 

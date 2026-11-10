@@ -179,5 +179,5 @@ cargo test
 
 ## 7. 下一步
 
-`echo-ipc` 的 `Mailbox<T, const N: usize>` + 手写 3 节点图（sensor → control → actuator），
-目标是 10⁶ 帧、0 丢包、trace 可复现（W2）。
+W2 已完成：`echo-ipc` 的 `Mailbox` + 3 节点图（10⁶ 帧、0 丢包），见 [13](13-ipc-and-three-node.md)。
+下一步 W3：PAL 5 域 + conformance 骨架。
