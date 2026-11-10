@@ -36,8 +36,8 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 - **★ 抖动优先于延迟** —— 稳定地晚 50 µs 无害（控制器已包含该常数延迟），偶尔晚 50 µs 会激起振荡。目标改为 `抖动 P99−P50 < 200 ns`，且 `echo-bench` 必须报告分布而非单值。
 - **★ AI 命令是"建议"，不是"命令"**（阶段三）—— 安全层是不可绕过的仲裁者，且永远有一条当前安全轨迹在跑。AI 失联只让它平滑减速，不会让它失控。**架构不变式现在固化，实现放到阶段三。** 见 [ADR-0017](05-design-decisions.md#adr-0017--ai-命令是建议安全层是不可绕过的仲裁者)。
 - **Cortex-M7 + D-Cache + TCM 是必答题** —— 480 MHz 上一次 D-Cache Miss 的代价可能超过整个上下文切换时间。硬实时资产放 TCM，MPU 显式声明缓存属性，DMA 缓冲区默认非缓存。见 [ADR-0018](05-design-decisions.md#adr-0018--内存分层tcm-放实时代码与数据缓存属性显式声明)。
-
-- **零外部 crate 依赖（L1 完全自研）** —— `[dependencies]` 中外部 crate 恒为 0，所有进入镜像的代码都是自研的。寄存器定义通过**自研 `svdgen` 从 CMSIS-SVD 生成**（不是手写）。代价是工期延长约一个数量级、第三方 `embedded-hal` 驱动不可直接用、首版无 TCP/IP。见 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) / [ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成)。
+- **★ POSIX 是可选的兼容分区，不是底座语义** —— 硬实时域保持无堆、无 POSIX；C 服务跑在时间分区 + MPU 隔离的 POSIX 域，预算超限即挂起，且不在安全 case 内。见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
+- **零外部 crate 依赖（L1 完全自研）** —— `[dependencies]` 中外部 crate 恒为 0，所有进入镜像的代码都是自研的。寄存器定义通过**自研 `svdgen` 从 CMSIS-SVD 生成**（不是手写）。代价是工期延长约一个数量级、第三方 `embedded-hal` 驱动不可直接用、首版无 TCP/IP。见 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) / [ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成)。⚠️ 唯一例外：POSIX 分区的 picolibc，见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
 - **宏内核而非微内核** —— MCU 上微内核的 MPU 重编程与 IPC 开销过大。据 Cortex-M4 上的对比研究，Tock 的中断延迟约 15.6 µs，而 RTIC 约 4 µs，差距主要来自 MPU 配置与任务抢占。EchoOS 选择"单地址空间 + MPU 静态分区"，把 MPU 当作纵深防御而非唯一隔离手段。
 - **线程模型而非 async 执行器** —— 硬实时要求有界的最坏响应时间，协作式调度无法提供。保留 `echo-async` 作为**应用侧可选适配层**，不作为内核调度基础。
 - **内核泛型化 over `Arch` trait** —— 零开销单态化，且让内核逻辑能在 host 上通过 `echo-arch-mock` 做单元测试。这是本方案里**质量收益最大的一个决策**。
@@ -57,6 +57,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | 2026-09-22 | 目标场景 | **具身智能机器人** → [02](02-embodied-ai-robot-profile.md) |
 | 2026-09-22 | "从零开发"的边界 | **L1 完全自研**，零外部 crate 依赖 → [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) |
 | 2026-09-22 | 寄存器定义方式 | 自研 SVD 代码生成，**不手写** → [ADR-0015](05-design-decisions.md#adr-0015--寄存器定义通过自研-svdgen-代码生成) |
+| 2026-11-10 | POSIX 兼容性 | **可选 PSE51 子集 + 时间分区**；硬实时域无 POSIX → [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) |
 
 **⚠️ 当前阻塞项（两个最高优先级）**：
 

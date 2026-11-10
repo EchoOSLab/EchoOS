@@ -32,7 +32,7 @@
 
 明确写出来，避免范围蔓延。这些是**首版（1.0 之前）不做**的：
 
-- ❌ **不做 POSIX / Linux 兼容层**。API 是 Rust 原生的，不模仿 `fork`/`epoll`/文件描述符语义。
+- ❌ **不做 POSIX / Linux 兼容层**（全量）。API 是 Rust 原生的。⚠️ **2026-11-10 修订**：允许一个**可选的、时间分区的 POSIX 子集**（参照 PSE51，不含 `fork`/`exec`/MMU/动态加载），用于 C 服务与遗留代码；硬实时域仍然无 POSIX、无堆。见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
 - ❌ **不做虚拟内存**。无 MMU 假设，只有 MPU。地址空间平坦，任务间共享同一地址空间。
 - ❌ **不做动态加载的用户程序**。任务在编译期静态链接进镜像。这可避免 Tock 式"进程加载器 + 每进程 MPU 重编程"带来的开销与攻击面（Hubris 明确"never will"支持动态加载，其可靠性收益已验证）。
 - ❌ **不做 SMP**。首版单核。多核 MCU（如 ESP32）以 AMP 方式各自跑一个 EchoOS 实例。
@@ -40,7 +40,7 @@
 - ❌ **不做通用 TCP/IP 协议栈**。机器人场景需要的是**实时现场总线**（EtherCAT / CAN-FD），不是互联网协议。TCP/IP 仅在需要与上位机通信时有价值，且可用更简单的方案替代。
 - ⚠️ **但现场总线是主干，不是可选项**。原"网络推迟到 M9+"的决策**已被推翻**——没有总线，EchoOS 只能控制单个关节，那是电机控制器而非机器人操作系统。见 [02 §2.9](02-embodied-ai-robot-profile.md#29-现场总线为什么它是关键路径-阶段二)。
 - ❌ **不做大脑层（AI 推理 / SLAM / 任务规划）**。那是 Linux + ROS 2 + AI 框架的职责。EchoOS 只提供与之对接的有界延迟接口（`echo-bridge`）。
-- ❌ **不做 C 语言 ABI 兼容的完整 POSIX 层**。C 互操作限于 `extern "C"` 边界。
+- ❌ **不做 C 语言 ABI 兼容的完整 POSIX 层**。C 互操作限于 `extern "C"` 边界；**可选的 PSE51 子集**见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)（v1 才实现，且不在安全 case 内）。
 
 ## 1.4 竞品对标
 
@@ -124,7 +124,9 @@
 
 ## 1.7 依赖边界：L1 完全自研
 
-**已决定**：EchoOS 采用 **L1（完全裸写）** 策略——**不引入任何第三方 crate**，所有进入镜像的代码均为自研。详见 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研)。
+**已决定**：EchoOS 采用 **L1（完全裸写）** 策略——**不引入任何第三方 Rust crate**，所有进入镜像的 Rust 代码均为自研。详见 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研)。
+
+> ⚠️ **唯一例外（2026-11-10）**：可选的 POSIX 兼容分区允许链接 vendored **picolibc**（BSD-3-Clause，固定版本、随库审计），仅用于 C 服务；**硬实时域不得链接**。见 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区)。
 
 ### 边界定义
 
@@ -136,6 +138,7 @@
 | 编译工具链 | ✅ 允许 | `rustc` / `cargo` / `rust-lld` / `rust-objcopy`（host 侧工具，不进镜像） |
 | host 侧构建/测试工具 | ✅ 允许 | QEMU、`cargo-deny`、`cargo-geiger`、自研 SVD 生成器 |
 | **第三方 Rust crate** | ❌ **禁止** | 任何出现在 `[dependencies]` 中的外部 crate |
+| `picolibc`（C 运行时） | ⚠️ **仅 POSIX 域** | [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) 的受控例外；硬实时域禁止 |
 
 ### 必须自研的关键组件
 

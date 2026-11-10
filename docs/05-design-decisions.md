@@ -538,6 +538,173 @@ AI 栈 ──► echo-bridge ──► echo-safety ──► echo-motion ──�
 
 ---
 
+## ADR-0020 · POSIX 兼容分区
+
+**状态**：已决定（2026-11-10）｜ **实施阶段：M12（服务层，可选）；前置：阶段一 V1 + 分区调度器** ｜ **范围：可选、能力门控**
+
+> **一句话**：POSIX 是给生态的**兼容接口**，不是底座语义。EchoOS 提供一个**可选的、时间分区 + MPU 隔离的 POSIX 服务域**；硬实时域保持无 POSIX、无堆、静态任务图。
+
+**背景**：DoraOS 是顶层全局机器人操作系统，EchoOS 是其 Micro Profile 的实时底座。工业与机器人客户大量存在 C 语言资产（厂商 SDK、协议栈、诊断工具、遗留驱动）。若完全不提供 POSIX 接口，这些代码只能重写为 Rust；但若把 POSIX 做成底座语义，则与五条已决定约束正面冲突：
+
+| 已决定 | POSIX 全量要求 | 冲突 |
+| --- | --- | --- |
+| 无堆（[ADR-0008](#adr-0008--默认无堆需要时提供确定性分配器)） | `malloc`、线程动态栈 | 硬实时域不能有不可预测分配 |
+| 无 MMU、单地址空间（[ADR-0005](#adr-0005--单地址空间--mpu-静态分区)） | `fork`/`exec`/`mmap`、进程隔离 | 只能做 PSE51 线程模型 |
+| 静态任务图、AOT（[ADR-0016](#adr-0016--循环执行体作为一等调度模式)） | `pthread_create` 运行时创建 | POSIX 必须是独立动态域 |
+| 零外部 crate、全自研（[ADR-0014](#adr-0014--零外部-crate-依赖l1-完全自研)） | C 代码需要 libc | 需要 libc 例外（见决策 4） |
+| 可认证（[01 G7](01-vision-and-scope.md#12-设计目标)） | POSIX 层巨大 TCB | POSIX 域必须排除在安全 case 外 |
+
+**候选**：
+
+- A. 不做 POSIX，只保留 `extern "C"` 边界（现状）——丧失 C 生态与迁移路径
+- B. 全量 POSIX + MMU + 进程——3–5 年，与 Linux/QNX 正面竞争
+- C. 在 Zephyr/NuttX 上做 POSIX——不是 EchoOS 底座，语义漂移
+- D. 只做 C ABI shim，不承诺 POSIX——满足部分迁移，但不叫 POSIX
+- **E. PSE51 子集 + 时间分区 + MPU 隔离（选定）**
+
+### 决策 1 · 范围
+
+| 维度 | 决定 |
+| --- | --- |
+| 形态 | 可选服务域 `echo-posix`，编译期开关 `posix-partition`；未开启时零 ROM/RAM 开销 |
+| 标准口径 | 参照 IEEE 1003.13 **PSE51**（最小实时系统 profile）能力边界；**不宣称 POSIX 合规**，只承诺"API 清单 + 一致性测试结果 + 未支持清单" |
+| 硬件包络 | Cortex-M7/M33 级，**无 MMU**；单地址空间 + MPU；建议 ≥ 512 KB RAM |
+| 执行模型 | 仅在 POSIX 时间窗口内运行；域内固定优先级抢占 + RR |
+| 隔离 | MPU 内存分区 + 时间预算 + 独立看门狗；崩溃只复位该域 |
+| 认证 | **POSIX 域不在安全 case 内**；安全 case = 内核 + 分区调度器 + 硬实时域 |
+| 语言 | C（picolibc）；**不支持** C++/libstdc++/Python |
+| 对 DoraOS | Micro 数据流节点仍**只允许 Rust AOT**；POSIX 只跑服务/遗留代码，经 mailbox 桥接；**不做第三个 target** |
+
+**不做（永不）**：`fork`/`exec`/进程、MMU、动态加载、通用文件系统、socket/TCP、文件映射 `mmap`、C++、Python、ROS 2 `rcl`/DDS、POSIX 合规认证。
+
+### 决策 2 · 架构：三域 + 时间分区
+
+```
+主时间帧 FRAME_NS（默认 1 ms，BSP 可配）
+├─ 硬实时窗口   HARD_RT_BUDGET_NS（默认 60%）
+│    循环执行体：控制律 / 安全校验 / 插值 / ISR 后半部
+│    原生 Rust、零堆、零 POSIX
+├─ POSIX 窗口   POSIX_BUDGET_NS（默认 35%）
+│    pthread / C 服务 / 诊断 / 遗留驱动
+│    时间预算由定时器强制，超限即挂起
+└─ 空闲/余量    SPARE_NS（≥ 5%）
+```
+
+分区调度器属于内核（`echo-sched`），`const_assert!` 校验三个预算之和 ≤ `FRAME_NS`。POSIX 域**不是**调度器的一种策略，而是被调度器"分配时间片"的一个域——这与 [ADR-0016](#adr-0016--循环执行体作为一等调度模式) 的循环执行体共用同一套时间基准。
+
+### 决策 3 · v1 API 清单
+
+| 组 | v1 提供 | 说明 |
+| --- | --- | --- |
+| 线程 | `pthread_create/join/detach/self/exit/setschedparam/getschedparam`、`sched_yield`、`pthread_attr_*` | 栈来自静态池；不存在"运行时创建无上限线程" |
+| 互斥量 | `pthread_mutex_init/destroy/lock/trylock/unlock`、`pthread_mutexattr_setprotocol` | **支持 `PTHREAD_PRIO_INHERIT`**（复用 [ADR-0009](#adr-0009--互斥量默认使用优先级继承协议pip)） |
+| 条件变量 | `pthread_cond_init/destroy/wait/timedwait/signal/broadcast` | 超时精度 = 1 帧（见决策 5） |
+| 信号量 | `sem_init/destroy/wait/trywait/post/getvalue` | 无命名信号量 |
+| 时钟 | `clock_gettime`（MONOTONIC/REALTIME）、`nanosleep`、`clock_nanosleep` | 分辨率 = 1 帧 |
+| 定时器 | `timer_create/settime/delete`（`SIGEV_NONE` + 回调任务） | 信号投递属 v2 |
+| 字符设备 | `open/close/read/write/ioctl/fcntl`（`O_NONBLOCK`） | 仅 UART/CAN/GPIO 等字符设备，**无通用 FS** |
+| libc | `malloc/free/calloc/realloc`（池上限）、`printf` 家族、`str*/mem*`、`errno`、`assert`、`setjmp/longjmp` | 由 picolibc + 系统调用桩提供 |
+| 调度查询 | `sched_get_priority_max/min` | 域内优先级范围 |
+
+**v2 候选**（不在 v1 验收内）：`poll`、`signal` 子集（`SIGUSR1/2`、`SIGTERM`，仅在安全点投递）、`sem_timedwait`、`pthread_barrier`、`pthread_condattr`。
+
+**编译期常量**：`MAX_PTHREADS`（默认 8）、`PTHREAD_STACK_SIZE`（默认 4 KB）、`POSIX_HEAP_SIZE`（默认 64 KB），由 BSP 配置并用 `const_assert!` 校验 RAM 预算。
+
+**永不提供**：`fork/vfork/exec`、`mmap/munmap`、`shm_open`、`socket/bind/listen/accept`、`dlopen`、`opendir/stat`、`pthread_cancel`（用协作取消标志替代）。
+
+### 决策 4 · libc 决策：picolibc 受控例外
+
+**决定**：**vendored picolibc（BSD-3-Clause）作为 [ADR-0014](#adr-0014--零外部-crate-依赖l1-完全自研) 的受控例外**，仅链接进 `echo-posix` 与 POSIX 应用，**绝不进入硬实时域**。
+
+| 项 | 规则 |
+| --- | --- |
+| 来源 | `tools/vendor/picolibc/<version>/`，固定版本，随版本库提交 |
+| 许可 | BSD-3-Clause；`LICENSE` 随源码提交，CI 校验未变更 |
+| 审计 | 版本升级必须单独 PR + diff 审查，不得随代码"顺手升级" |
+| 边界 | **仅 `echo-posix` 及其应用**；硬实时 crate 不得依赖（规则 [R8](04-crate-layout.md#r8--硬实时域不得依赖-echo-posix)） |
+| 认证 | 不在安全 case 内；安全 case 只覆盖内核 + 分区调度器 + 硬实时域 |
+| R7 修订 | "零外部 **Rust crate**"；C 运行时为唯一例外，且仅 picolibc |
+
+**系统调用桩**（由 `echo-posix` 实现）：`_write`、`_read`、`_close`、`_lseek`、`_fstat`、`_isatty`、`_sbrk`、`_kill`、`_getpid`、`_exit`。
+
+- `_sbrk` 由固定池支撑：`POSIX_HEAP_SIZE`（默认 64 KB，`const_assert!` ≤ 剩余 RAM 的 1/4）；耗尽时 `malloc` 返回 `NULL`，不 panic、不阻塞。
+- `getpid()` 恒返回 1；`isatty()` 对 UART 返回真；`_exit()` 只终止 POSIX 域，不影响硬实时域。
+- `errno` 需要 TLS：由 `Tcb` 持有 TLS 基址，上下文切换时更新。**v1 先支持单线程 C 服务**；多线程 TLS 是 v1.x 验收项。
+
+**为什么不用自写 mini-libc**：`printf` 家族（浮点格式化）、`setjmp/longjmp`、`errno`/TLS、`malloc` 边界情况是 3–6 个月的持续投入，且 bug 密度高。**为什么不用 C ABI shim**：真实 C 库（协议栈、厂商 SDK）依赖 libc 符号，shim 覆盖率不足。
+
+### 决策 5 · 时间分区规则
+
+| 规则 | 内容 |
+| --- | --- |
+| R1 | 只有内核分区调度器决定哪个域运行；POSIX **不能**主动进入硬实时窗口 |
+| R2 | 硬实时域**永不阻塞**在 POSIX 上；跨域只走有界无锁 mailbox（`try_send`/`try_recv`） |
+| R3 | POSIX 窗口在每帧硬实时槽位之后；窗口内域内固定优先级抢占 + RR |
+| R4 | 窗口结束由定时器中断强制；POSIX 仍在运行 → `POSIX_OVERRUN`，挂起至下一帧 |
+| R5 | 连续 3 帧超限 → 复位 POSIX 域（看门狗）；硬实时域不受影响 |
+| R6 | POSIX **不能注册 ISR**；所有中断由内核/驱动拥有，POSIX 只通过字符设备访问 |
+| R7 | POSIX 线程优先级是**域内**优先级，不参与硬实时优先级映射 |
+| R8 | MPU：POSIX 代码/数据/堆/栈独立分区；禁止访问 TCM 硬实时区与内核数据；越界 → `MemManage` → 终止域 |
+| R9 | 启动：硬实时域首帧之后再初始化 POSIX 域；初始化失败 → 降级运行（无 POSIX），不阻塞系统 |
+| R10 | **POSIX 是软/准实时**：不承诺 deadline、不进入认证；文档与对外材料必须写明 |
+| R11 | 硬实时域超限 → 记录 `DEADLINE_MISS` + 触发安全响应；当帧暂停 POSIX 域，**不侵占**其窗口（避免相位漂移） |
+
+**MPU region 预算**：POSIX 域最多占 3 个 region（代码 / 数据 / 堆+栈），其余留给硬实时域；8-region 的 Cortex-M7 型号需在 BSP 中显式分配并在启动时校验（`const_assert!` + 运行时断言）。
+
+**I/O 有界性**：POSIX 域的字符设备写**不得等待硬件 FIFO**，否则按预算超限处理；v1 的 `_write` 对 UART 采用有界重试 + `EAGAIN`，完整流控语义属 v2。
+
+**分辨率的诚实边界**：v1 的 `nanosleep`/`timedwait` 分辨率 = 1 帧（默认 1 ms），不是微秒级。需要更高分辨率时，v2 用独立比较通道，且**必须重新做干扰测试**。
+
+### 决策 6 · 对 PAL / DoraOS 的影响
+
+| 项 | 影响 |
+| --- | --- |
+| PAL 能力位 | 新增编译期能力 `posix_partition` / `pthread` / `libc` / `posix_timers`；Micro 硬实时 profile 全为 `false` |
+| `dora-pal-echoos` | 硬实时后端**不变**；PAL 之上不暴露 POSIX（DoraOS 运行时本身不用 POSIX） |
+| `dora-codegen` | Rust 节点不变；C/C++ 是**服务节点**，不进静态图，经 mailbox 桥接 |
+| "一份 YAML 两个 target" | 维持原承诺（Rust 节点）；**不把 POSIX 变成第三个 target**，否则语义爆炸 |
+| conformance | 新增 `echo-posix-conformance`（API 子集）+ **干扰测试**（POSIX 满载时硬实时 P99 劣化阈值） |
+| 认证 | 安全 case 明确排除 POSIX 域；TCB 边界写入认证材料 |
+| 命名 | 对外称 **"EchoOS POSIX Partition（PSE51 子集）"**，不称"POSIX 兼容" |
+
+### 决策 7 · v1 验收用例
+
+| # | 用例 | 通过判据 |
+| --- | --- | --- |
+| P-01 | 8 线程创建/join/detach/优先级 | 全部返回正确；栈池无泄漏；无硬实时 deadline miss |
+| P-02 | 三线程优先级反转（L 持锁、H 请求、M 就绪） | H 阻塞时长 ≤ 临界区 + 常数；PIP 生效 |
+| P-03 | `cond_timedwait` 超时与 signal 竞争 | 无丢失唤醒；超时误差 ≤ 1 帧 |
+| P-04 | 信号量生产者/消费者压力 | 无丢失 post；计数正确 |
+| P-05 | 时钟单调性与 32 位回绕 | 回绕后 `Instant` 仍单调 |
+| P-06 | `nanosleep` / `clock_nanosleep` 绝对时间 | 误差 ≤ 1 帧；绝对模式不累积漂移 |
+| P-07 | 周期 POSIX 定时器 | 窗口内抖动 ≤ 1 帧；不越窗 |
+| P-08 | UART 字符设备双线程读写 + `O_NONBLOCK` | `EAGAIN` 语义正确；无数据错乱 |
+| P-09 | `malloc` 边界 | 达上限返回 `NULL`；无堆破坏；高水位可查 |
+| P-10 | libc：`printf`/`snprintf`/`strtol`/`errno`/`setjmp` + 双线程 TLS | 输出正确；`errno` 线程隔离 |
+| P-11 | **干扰测试**：POSIX 域 CPU 满载 | 硬实时 P99 抖动劣化 **< 10%** 且绝对增量 < 200 ns |
+| P-12 | **超限测试**：POSIX 连续超预算 | ≤ 1 帧内挂起；连续 3 帧复位；硬实时 deadline miss = 0 |
+| P-13 | MPU 越界：POSIX 写硬实时区 | `MemManage` → 终止域；硬实时继续运行 |
+| P-14 | 关闭 POSIX 的构建 | Flash/RAM 回到基线；无 `echo-posix` 符号；内核测试全绿 |
+| P-15 | 72 小时混合负载 | 堆高水位稳定、无泄漏、硬实时无 miss |
+| P-16 | 依赖规则 | `lint-deps` 断言硬实时 crate 不依赖 `echo-posix`；`echo-posix` 不链接安全关键 API |
+
+### 后果
+
+- ✅ 打开 C 生态：厂商 SDK、协议栈、诊断工具可原样复用，迁移成本从"重写"降到"适配"。
+- ✅ 为 DoraOS 提供 "Full-lite" 迁移路径，同时不破坏 Micro 的 AOT 语义。
+- ⚠️ **TCB 增大**：POSIX 层引入大量 `unsafe` 与 C ABI；必须新增 `echo-posix` 的 unsafe 白名单（[R3](04-crate-layout.md#r3--unsafe-白名单)）。
+- ⚠️ **libc 例外**：L1 从"零外部依赖"调整为"零外部 Rust crate + picolibc 受控例外"，需要同步修订 [ADR-0014](#adr-0014--零外部-crate-依赖l1-完全自研) 与 [01 §1.7](01-vision-and-scope.md#17-依赖边界l1-完全自研)。
+- ⚠️ **范围蔓延风险**：POSIX 会不断被要求"再加一个接口"。以本 ADR 的 v1 清单为唯一准入列表，新增走新 ADR。
+- ⚠️ **不是差异化**：QNX/VxWorks/RTEMS/NuttX/Zephyr 都有 POSIX 子集。**POSIX 是采购语言，护城河仍是时间分区 + 证据 + 可认证。**
+
+**替代方案（记录在案）**：A 不做 POSIX（丧失 C 生态）；B 全量 POSIX + MMU（3–5 年，与 Linux/QNX 正面竞争）；C 在 Zephyr/NuttX 上做 POSIX（不是 EchoOS 底座，语义漂移）；D 只做 C ABI shim（覆盖不足）。**均不选。**
+
+**复议条件**：① P-11 干扰测试劣化 > 10%，且无法通过缩小 API/预算解决；② picolibc 许可或认证不可接受；③ 目标客户没有 C 资产，投入产出不成立。
+
+**跟进**：更新 [01 §1.3 非目标](01-vision-and-scope.md#13-明确非目标non-goals)、[04 crate 树](04-crate-layout.md#43-完整目录树)与规则 R8、[06 子系统](06-subsystems.md)新增 §6.9、[07 工具链](07-toolchain-and-testing.md)加入 picolibc vendoring、[08 M12](08-roadmap.md#m12--服务层可选)、[09 风险](09-risks-and-open-questions.md#910-具身智能机器人场景引入的新风险)新增 T25–T28。
+
+---
+
 ## 决策摘要表
 
 | ADR | 决策 | 状态 | 影响范围 |
@@ -555,9 +722,10 @@ AI 栈 ──► echo-bridge ──► echo-safety ──► echo-motion ──�
 | 0011 | 启动/向量表/寄存器定义全自研 | 已决定 | `echo-arch-*`, `echo-regs` |
 | 0012 | QEMU 为第一公民测试平台 | 已决定 | `echo-testkit`, CI |
 | 0013 | MIT OR Apache-2.0 | **待确认** | 全局 |
-| **0014** | **零外部 crate 依赖（L1）** | 已决定（⚠️ 适用范围待明确，见 [Q8](09-risks-and-open-questions.md#q8--现场总线选型--最高优先级)） | **全局** |
+| **0014** | **零外部 crate 依赖（L1）** | 已决定（⚠️ 适用范围：见 [Q8](09-risks-and-open-questions.md#q8--现场总线选型--最高优先级)；picolibc 例外见 [0020](#adr-0020--posix-兼容分区)） | **全局** |
 | **0015** | **SVD 代码生成寄存器定义** | 已决定 | `svdgen`, `echo-regs` |
 | **0016** | **循环执行体作为一等调度模式** | 已决定（阶段一） | `echo-sched` |
 | **0017** | **AI 命令是建议，安全层不可绕过** | 不变式已定，**阶段三实施** | `echo-bridge`, `echo-safety` |
 | **0018** | **TCM / 缓存属性显式管理** | 已决定（阶段一） | `echo-mm`, `echo-arch-cortex-m` |
 | **0019** | **★ 分阶段交付，实时控制优先** | 已决定 | **全局范围约束** |
+| **0020** | **★ POSIX 兼容分区（PSE51 子集，可选）** | 已决定（**v1 才实现**） | `echo-posix`, `echo-sched`, `echo-mm`, PAL |

@@ -137,7 +137,8 @@ echoos/                                    # workspace 根
 │   │   ├── echo-fs/                       # 日志结构文件系统（掉电一致）
 │   │   ├── echo-net/                      # ⏸ 通用 TCP/IP —— 已列为非目标（见 02 §2.7）
 │   │   ├── echo-shell/                    # 交互式调试 shell（串口）
-│   │   └── echo-ota/                      # 固件升级 + A/B 双分区
+│   │   ├── echo-ota/                      # 固件升级 + A/B 双分区
+│   │   └── echo-posix/                    # ★ 可选：PSE51 子集兼容分区（ADR-0020，v1）
 │   │
 │   ├── robot/                             # ── ⏩ 阶段二/三：当前不实现（见 02 §2.3）
 │   │   ├── echo-motion/                   # ⏩ 阶段二：轨迹插值 + 多关节同步
@@ -245,6 +246,7 @@ graph TD
     fs[echo-fs]
     net[echo-net]
     shell[echo-shell]
+    posix[echo-posix]
 
     safety[echo-safety]
     motion[echo-motion]
@@ -298,6 +300,9 @@ graph TD
     sys --> fs
     sys --> net
     sys --> shell
+    sys --> posix
+    hal --> posix
+    posix --> bsp
 
     sys --> sensor
     sensor --> safety
@@ -327,7 +332,7 @@ graph TD
     classDef robot fill:#fde8ef,stroke:#be185d
     class atomic,vcell,util,config,macros,trace leaf
     class crit,mm,time,sched,sync,ipc,kernel kern
-    class driver,hal,fs,net,shell svc
+    class driver,hal,fs,net,shell,posix svc
     class regs,chipregs reg
     class safety,motion,bridge,fieldbus,sensor robot
 ```
@@ -370,9 +375,10 @@ sensor ──► safety   （传感器反馈参与安全判定）
 | `echo-mm` | 允许（分配器实现必须） |
 | `echo-critical` | 允许（关中断） |
 | `echo-trace` | 允许（MMIO 写） |
+| `echo-posix` | 允许（C ABI / 系统调用桩 / 用户内存校验）；**仅 POSIX 域**，不得被硬实时 crate 依赖（R8） |
 | **其它全部** | **`#![deny(unsafe_code)]`** |
 
-`echo-sched` / `echo-sync` / `echo-ipc` / `echo-kernel` / `echo-sys` / 所有 services **必须**是 `deny(unsafe_code)`。若发现写不下去，说明抽象层设计有问题，应修 `echo-arch-api` 或 `echo-util`，而不是开白名单。
+`echo-sched` / `echo-sync` / `echo-ipc` / `echo-kernel` / `echo-sys` / 除 `echo-posix` 外的所有 services **必须**是 `deny(unsafe_code)`（`echo-posix` 的 unsafe 仅限 C ABI/系统调用桩，且受 R8 约束）。若发现写不下去，说明抽象层设计有问题，应修 `echo-arch-api` 或 `echo-util`，而不是开白名单。
 
 ### R4 — 服务层必须可裁剪
 
@@ -409,10 +415,17 @@ cortex-m = "0.7"
 | `xtask` / `svdgen` 的依赖 | **host 侧工具，不进镜像** |
 | `echo-testkit` 的 host 侧依赖 | 测试框架，不进镜像 |
 | `dev-dependencies` | 仅测试用，不进发布镜像 |
+| `picolibc`（C 运行时） | [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) 的受控例外：vendored + 固定版本 + 许可审计，**仅 `echo-posix` 链接**，硬实时 crate 不得依赖（R8） |
 
 **检查实现**：`cargo xtask lint-deps` 遍历 `cargo metadata` 中所有非 host-tool 成员，对每个 `[dependencies]` 项断言其 `source` 为 `null`（即 path 依赖）。
 
 > 这条规则是 [ADR-0014](05-design-decisions.md#adr-0014--零外部-crate-依赖l1-完全自研) 的执行保障。**没有它，L1 会在第一次"就加一个小 crate 吧"时失效。**
+
+### R8 — 硬实时域不得依赖 echo-posix
+
+所有硬实时 crate（`crates/core/*`、`crates/arch/*`、`crates/kernel/*`、`crates/api/echo-sys`、`echo-driver`、`echo-hal`）的 `[dependencies]` 中**不得出现** `echo-posix`；`echo-posix` 也不得被安全关键链路（`echo-safety` / `echo-motion` / `echo-fieldbus`）依赖。
+
+> 这条规则把 [ADR-0020](05-design-decisions.md#adr-0020--posix-兼容分区) 的"POSIX 域不在安全 case 内"从文档约定变成编译期约束。破坏它，时间分区与可认证性同时失效。
 
 ## 4.6 `xtask`：统一入口
 
