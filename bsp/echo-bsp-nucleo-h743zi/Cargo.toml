@@ -1,0 +1,14 @@
+[package]
+name = "echo-bsp-nucleo-h743zi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "echo-h7"
+path = "src/main.rs"
+
+[dependencies]
+echo-arch-api.workspace = true
+echo-arch-cortex-m.workspace = true
+echo-trace.workspace = true

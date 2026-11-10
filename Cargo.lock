@@ -7,10 +7,26 @@ name = "echo-arch-api"
 version = "0.1.0"
 
 [[package]]
+name = "echo-arch-cortex-m"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+]
+
+[[package]]
 name = "echo-arch-mock"
 version = "0.1.0"
 dependencies = [
  "echo-arch-api",
+]
+
+[[package]]
+name = "echo-bsp-nucleo-h743zi"
+version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+ "echo-arch-cortex-m",
+ "echo-trace",
 ]
 
 [[package]]
@@ -60,6 +76,10 @@ dependencies = [
  "echo-arch-api",
  "echo-arch-mock",
 ]
+
+[[package]]
+name = "echo-trace"
+version = "0.1.0"
 
 [[package]]
 name = "xtask"
