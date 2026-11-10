@@ -5,8 +5,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-
-[dev-dependencies]
+echo-arch-api.workspace = true
 echo-arch-mock.workspace = true
 echo-ipc.workspace = true
+echo-pal-api.workspace = true
+
+[dev-dependencies]
 echo-sched.workspace = true

@@ -29,13 +29,19 @@ version = "0.1.0"
 name = "echo-conformance"
 version = "0.1.0"
 dependencies = [
+ "echo-arch-api",
  "echo-arch-mock",
  "echo-ipc",
+ "echo-pal-api",
  "echo-sched",
 ]
 
 [[package]]
 name = "echo-ipc"
+version = "0.1.0"
+
+[[package]]
+name = "echo-pal-api"
 version = "0.1.0"
 
 [[package]]

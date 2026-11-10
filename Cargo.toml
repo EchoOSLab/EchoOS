@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/api/echo-pal-api",
     "crates/arch/echo-arch-api",
     "crates/arch/echo-arch-mock",
     "crates/kernel/echo-ipc",
@@ -13,6 +14,7 @@ members = [
 ]
 # 裸机 BSP 不在默认成员中：裸 cargo build/test 只碰 host 可编译部分
 default-members = [
+    "crates/api/echo-pal-api",
     "crates/arch/echo-arch-api",
     "crates/arch/echo-arch-mock",
     "crates/kernel/echo-ipc",
@@ -30,6 +32,7 @@ license = "MIT OR Apache-2.0"
 echo-arch-api = { path = "crates/arch/echo-arch-api" }
 echo-arch-mock = { path = "crates/arch/echo-arch-mock" }
 echo-ipc = { path = "crates/kernel/echo-ipc" }
+echo-pal-api = { path = "crates/api/echo-pal-api" }
 echo-sched = { path = "crates/kernel/echo-sched" }
 
 [profile.dev]
