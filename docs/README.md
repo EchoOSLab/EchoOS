@@ -17,6 +17,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [07-toolchain-and-testing.md](07-toolchain-and-testing.md) | 工具链、构建配置、测试与实时性验证 | 所有人 |
 | [08-roadmap.md](08-roadmap.md) | 里程碑 M0–M12、垂直切片、交付物、验收标准 | 所有人 |
 | [09-risks-and-open-questions.md](09-risks-and-open-questions.md) | 风险登记、待确认问题、下一步 | 决策者 |
+| [10-development-plan.md](10-development-plan.md) | **执行排期**：M0–M7 的 12 周计划、工作分解、门槛与止损 | 所有人 |
 
 ## 一页纸摘要
 
