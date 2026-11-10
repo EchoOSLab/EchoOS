@@ -56,7 +56,7 @@
 
 | 周 | 主题 | 交付物 | 验收 |
 | --- | --- | --- | --- |
-| **W1** | 基础设施 | `crates/core/echo-util`（bitmap、intrusive_list、ring_buffer）；`crates/arch/echo-arch-api`（`trait Arch`）；`crates/arch/echo-arch-mock` | host 单测 ≥ 12 个；`cargo test` 绿 |
+| **W1** ✅ | 基础设施 | `echo-arch-api` + `echo-arch-mock` + `echo-sched`（`CyclicExecutive`）；`echo-util` 延后到第一个消费者 | 13 个 host 测试全绿；两次 trace 一致 |
 | **W2** | 调度与 IPC | `echo-sched`（`TaskDef`、`CyclicExecutive<const N>`）；`echo-ipc`（`Mailbox<T, const N>`）；手写 3 节点图 | 10⁶ 帧 0 丢包；两次运行 trace 完全一致 |
 | **W3** | PAL 契约 | PAL 5 域（Task/Time/Memory/Channel/Observability）；`echo-conformance` 用例骨架 | Mock 后端通过全部 conformance；契约文档 v0.1 |
 | **W4** | 代码生成 | `tools/codegen`：YAML 子集 → `static_graph.rs`；快照测试 | 生成图与手写图 trace 一致 |
@@ -171,13 +171,16 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 
 ## 9. 未来 7 天（可直接执行）
 
-- [ ] `cargo new --lib crates/core/echo-util`：`bitmap` + `ring_buffer` + 单测
-- [ ] `crates/arch/echo-arch-api`：`trait Arch { fn now_ns(&self)->u64; fn irq_save()->usize; fn irq_restore(usize); }`
-- [ ] `crates/arch/echo-arch-mock`：可推进时间、可注入中断
-- [ ] `cargo test` 在 host 上跑通
-- [ ] 把三个 crate 加入 workspace `members`
-- [ ] 每日一个 commit；周五写 5 行证据笔记
+- [x] `echo-arch-api`：`trait Arch { fn now_ns(&self) -> u64; }`
+- [x] `echo-arch-mock`：`MockArch`（`advance`/`set`，饱和推进）
+- [x] `echo-sched`：`CyclicExecutive` + `FrameStats`，8 个集成测试
+- [x] `cargo test` 13 passed；`cargo fmt --check` OK
+- [x] `cargo xtask hello` 四目标回归 PASS
+- [x] 三个 crate 加入 workspace `members`
+- [x] 契约写入 [11-arch-and-sched.md](11-arch-and-sched.md)，记录写入 [12-dev-log.md](12-dev-log.md)
+- [ ] `echo-util`：延后到第一个消费者（M2 就绪队列 / W2 IPC）
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
+- [ ] W2：`echo-ipc` 的 `Mailbox` + 3 节点图（10⁶ 帧、0 丢包）
 
 ---
 
@@ -190,3 +193,11 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 14–16 h | 9–10 周 | 仅当能保证连续投入 |
 
 **每日节奏**：1 h 编码 → 1 个 commit → 周五 30 min 写证据笔记（≤ 5 行）→ 周日 30 min 定下周 3 件事。
+
+---
+
+## 11. 执行进度（滚动更新）
+
+| 日期 | 周 | 完成 | 证据 |
+| --- | --- | --- | --- |
+| 2026-11-10 | W1（部分） | `Arch` / `MockArch` / `CyclicExecutive` + 13 tests | `cargo test`；[12-dev-log](12-dev-log.md) |
