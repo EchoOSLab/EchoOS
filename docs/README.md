@@ -21,6 +21,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [11-arch-and-sched.md](11-arch-and-sched.md) | `Arch` 抽象与循环执行体 v0：契约、时间模型、测试与限制 | 内核开发者 |
 | [12-dev-log.md](12-dev-log.md) | **开发日志**：每次提交的目标、改动、验证、决策与下一步 | 所有人 |
 | [13-ipc-and-three-node.md](13-ipc-and-three-node.md) | SPSC `Mailbox` 与 3 节点图：环形语义、内存序、10⁶ 帧验收 | 内核开发者 |
+| [14-pal-contract.md](14-pal-contract.md) | PAL 5 域契约：语义抽象、能力矩阵、`MockPlatform`、7 个 conformance | 内核 / DoraOS 开发者 |
 
 ## 一页纸摘要
 

@@ -58,7 +58,7 @@
 | --- | --- | --- | --- |
 | **W1** ✅ | 基础设施 | `echo-arch-api` + `echo-arch-mock` + `echo-sched`（`CyclicExecutive`）；`echo-util` 延后到第一个消费者 | 13 个 host 测试全绿；两次 trace 一致 |
 | **W2** ✅ | IPC + 3 节点图 | `echo-ipc`（SPSC `Mailbox`）；`echo-conformance` 的 3 节点图 | 10⁶ 帧 0 丢包；24 tests 全绿 |
-| **W3** | PAL 契约 | PAL 5 域（Task/Time/Memory/Channel/Observability）；`echo-conformance` 用例骨架 | Mock 后端通过全部 conformance；契约文档 v0.1 |
+| **W3** ✅ | PAL 契约 | PAL 5 域（Task/Time/Memory/Channel/Observability）；`echo-conformance` 的 MockPlatform | 7 个 conformance 测试；31 tests 全绿 |
 | **W4** | 代码生成 | `tools/codegen`：YAML 子集 → `static_graph.rs`；快照测试 | 生成图与手写图 trace 一致 |
 | **W5** | QEMU 集成 | `echo-arch-cortex-m`（向量表/link.x/`Arch` 实现）；`echo-trace` semihosting 后端；QEMU 上 1 kHz 槽位 | QEMU M7 跑 3 节点图；**D35 门** |
 | **W6** | H7 启动 | `echo-bsp-nucleo-h743zi`、`echo-rt`、UART 输出；M1 最小启动 | 串口 4 行启动日志 |
@@ -180,7 +180,8 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] 契约写入 [11-arch-and-sched.md](11-arch-and-sched.md)，记录写入 [12-dev-log.md](12-dev-log.md)
 - [ ] `echo-util`：延后到第一个消费者（M2 就绪队列 / W2 IPC）
 - [x] W2：`echo-ipc` 的 `Mailbox` + 3 节点图（10⁶ 帧、0 丢包）
-- [ ] W3：PAL 5 域 trait + mock 后端 + conformance 骨架
+- [x] W3：PAL 5 域 trait + mock 后端 + conformance 骨架
+- [ ] W4：`tools/codegen`（YAML → `static_graph.rs`），生成图与手写图 trace 一致
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -203,3 +204,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | --- | --- | --- | --- |
 | 2026-11-10 | W1（部分） | `Arch` / `MockArch` / `CyclicExecutive` + 13 tests | `cargo test`；[12-dev-log](12-dev-log.md) |
 | 2026-11-10 | W2 | SPSC `Mailbox` + 3 节点图 | 24 tests；[13-ipc](13-ipc-and-three-node.md) |
+| 2026-11-10 | W3 | PAL 5 域 + `MockPlatform` | 31 tests；[14-pal](14-pal-contract.md) |

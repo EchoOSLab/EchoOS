@@ -128,6 +128,7 @@ echoos/                                    # workspace 根
 │   │
 │   ├── api/                               # ── L4/L5：对外接口
 │   │   ├── echo-sys/                      # 稳定的系统调用式 API（用户与内核的契约）
+│   │   ├── echo-pal-api/                  # ★ PAL 5 域契约（Micro；DoraOS 共用）
 │   │   ├── echo-rt/                       # #[echo::main] / entry / 运行时启动
 │   │   └── echo-prelude/                  # pub use 集合，`use echoos::prelude::*`
 │   │

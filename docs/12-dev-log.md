@@ -13,6 +13,7 @@
 | 2026-11-10 | W1-001 | 功能 | `trait Arch` + `MockArch` + `CyclicExecutive` | `a981fec` |
 | 2026-11-10 | W1-002 | 文档 | W1 日志与计划进度跟踪 | 本条目 |
 | 2026-11-10 | W2-001 | 功能 | SPSC Mailbox + 3 节点图（10⁶ 帧 0 丢包） | `65e839d` |
+| 2026-11-10 | W3-001 | 功能 | PAL 5 域契约 + MockPlatform + 7 个 conformance | `7f67c68` |
 
 ---
 
@@ -147,6 +148,42 @@ cargo xtask hello:        四目标回归 PASS
 1. PAL 5 域（Task/Time/Memory/Channel/Observability）trait 与 mock 后端；
 2. `echo-conformance` 增加 PAL 用例骨架；
 3. 与 DoraOS 侧对齐 `dora-pal-conformance` 的用例命名。
+
+---
+
+## 2026-11-10 · W3-001 · PAL 5 域契约 + MockPlatform
+
+**目标**：把 Micro 底座能力收敛成稳定契约，并让 conformance 只依赖契约、不依赖具体后端。
+
+**改动**：
+- `crates/api/echo-pal-api/src/lib.rs`：`Platform` + Task/Time/Memory/Channel/Observability + `Capabilities` + `StaticTask`。
+- `crates/test/echo-conformance/src/mock.rs`：`MockPlatform`（静态任务表 8、trace 64、池 16B×16、通道 8 槽）。
+- `crates/test/echo-conformance/tests/pal.rs`：7 个 conformance 测试。
+- `docs/14-pal-contract.md`：契约、能力矩阵、Mock 常量、测试与限制。
+
+**验证**：
+```text
+cargo test
+echo-pal-api:     编译通过（0 测试）
+echo-conformance: 7 passed（PAL conformance）
+累计 31 passed, 0 failed
+cargo fmt --check: OK
+cargo clippy:      无警告
+cargo xtask hello: 四目标回归 PASS
+```
+
+**决策/偏差**：
+- **D-009**：`declare(StaticTask)` 取代 `spawn(closure)`。Micro 任务编译期确定；运行期 `spawn` 会破坏静态保证。
+- **D-010**：v0 每个 `Platform` 只有一个 channel；多通道/端点留到 M4。
+- **D-011**：内存域用 16 B × 16 固定块池；typed pool 留到 M4。
+- **D-012**：契约以测试为准；DoraOS 的 `dora-pal-conformance` 必须镜像同一组用例。
+- **偏差**：`Platform` 不是 `dyn` 安全的（关联类型 + 静态分发），这是刻意的零成本取舍。
+- **结构变化**：`echo-conformance` 从纯测试宿主变成带 mock 的 host 库，新增正常依赖（arch-api/arch-mock/ipc/pal-api）。
+
+**下一步（W4）**：
+1. `tools/codegen`：YAML 子集 → 静态图代码；
+2. 任务声明走 `TaskApi::declare`，生成图与手写 3 节点图 trace 一致；
+3. 新增 `docs/15-codegen.md`，追加 `W4-001`。
 
 ---
 
