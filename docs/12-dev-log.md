@@ -20,6 +20,7 @@
 | 2026-11-11 | W7-001 | 功能/部分 | 抢占决策 + RR；PendSV/SVC 占位 | `6500987` |
 | 2026-11-11 | W8-001 | 功能 | 时间队列 + bench 直方图 + DWT 回绕 | `285540b` |
 | 2026-11-11 | W9-001 | 文档/阻塞 | H7 证据实验设计与报告模板（无数据） | 本条目（docs） |
+| 2026-11-11 | W10-001 | 功能 | PAL v0.1 冻结 + 第二后端（80 tests） | `d7c82fc` |
 
 ---
 
@@ -389,6 +390,35 @@ cargo build --target thumbv7em ... OK
 1. 冻结 PAL v0.1（trait + 能力矩阵 + conformance 用例集）；
 2. 实现第二个 PAL 后端（不同容量/行为），跑同一套 conformance；
 3. 新增 `docs/21-pal-freeze.md`，追加 `W10-001`。
+
+---
+
+## 2026-11-11 · W10-001 · PAL v0.1 冻结 + 第二后端
+
+**目标**：冻结 PAL 契约，并用第二个后端证明 conformance 只依赖契约、不依赖具体容量。
+
+**改动**：
+- `crates/api/echo-pal-api`：新增 `PAL_VERSION = (0,1,0)`。
+- `crates/test/echo-conformance/src/mock_small.rs`：`SmallMockPlatform`（2 任务 / 8 trace / 4×8B 池 / 2 槽通道）。
+- `crates/test/echo-conformance/tests/pal_two_backends.rs`：4 个双后端 conformance 测试。
+- `docs/21-pal-freeze.md`：冻结面、变更策略、两后端容量表。
+
+**验证**：
+```text
+cargo test                                         80 passed, 0 failed
+cargo clippy                                       无警告
+cargo xtask graph                                  PASS
+```
+
+**决策/偏差**：
+- **D-037**：`PAL_VERSION` 显式常量，DoraOS 侧可做编译期/运行期协商。
+- **D-038**：第二后端只改容量、不改语义，避免"复制粘贴的假验证"。
+- **D-039**：冻结以 conformance 测试为准，不以文档为准。
+
+**下一步（W11）**：
+1. 同一份生成图在 host 两个后端/通道容量上对比 trace；
+2. 对比 QEMU M7 的摘要结果（只有 OK/帧数/丢包，没有逐帧 trace）；
+3. 新增 `docs/22-two-backends.md`，追加 `W11-001`。
 
 ---
 
