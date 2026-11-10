@@ -83,7 +83,7 @@ pub fn task_defs(entries: [fn(); NODE_COUNT]) -> [echo_sched::TaskDef; NODE_COUN
 ```bash
 cargo run -p echo-codegen -- \
   dataflows/three_node.yaml \
-  crates/test/echo-conformance/tests/data/generated_three_node.rs
+  dataflows/generated/three_node.rs
 ```
 
 `tools/codegen` 的 `checked_in_conformance_file_is_current` 测试会重新生成并逐字节对比；
@@ -133,7 +133,7 @@ cargo test
 | `tools/codegen/src/lib.rs` | 解析、校验、生成 + 7 个单测 |
 | `tools/codegen/src/main.rs` | CLI：`echo-codegen <in.yaml> <out.rs>` |
 | `dataflows/three_node.yaml` | 3 节点输入 |
-| `crates/test/echo-conformance/tests/data/generated_three_node.rs` | 生成物（check in） |
+| `dataflows/generated/three_node.rs` | 生成物（check in，test 与 QEMU BSP 共用） |
 | `crates/test/echo-conformance/tests/generated_graph.rs` | 生成图 vs 手写图验收 |
 
 ## 9. 下一步（W5）

@@ -1,7 +1,7 @@
 use echo_arch_mock::MockArch;
 use echo_sched::{CyclicExecutive, TaskDef};
 
-include!("data/generated_three_node.rs");
+include!("../../../../dataflows/generated/three_node.rs");
 
 fn noop() {}
 

@@ -7,6 +7,15 @@ edition.workspace = true
 name = "echo-arm"
 path = "src/main.rs"
 
+[[bin]]
+name = "echo-arm-graph"
+path = "src/graph.rs"
+
+[dependencies]
+echo-arch-api.workspace = true
+echo-ipc.workspace = true
+echo-sched.workspace = true
+
 [features]
 # 打印后不退出，保持 QEMU 图形窗口常驻（手动看画面用）
 gui = []

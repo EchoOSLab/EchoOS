@@ -337,17 +337,15 @@ nodes:
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let yaml = std::fs::read_to_string(root.join("dataflows/three_node.yaml"))
             .expect("dataflow fixture must exist");
-        let checked_in = std::fs::read_to_string(
-            root.join("crates/test/echo-conformance/tests/data/generated_three_node.rs"),
-        )
-        .expect("generated conformance file must exist");
+        let checked_in = std::fs::read_to_string(root.join("dataflows/generated/three_node.rs"))
+            .expect("generated conformance file must exist");
 
         let graph = parse(&yaml).expect("fixture must parse");
         assert_eq!(
             generate(&graph, "dataflows/three_node.yaml"),
             checked_in,
             "regenerate with: cargo run -p echo-codegen -- dataflows/three_node.yaml \
-             crates/test/echo-conformance/tests/data/generated_three_node.rs"
+             dataflows/generated/three_node.rs"
         );
     }
 }

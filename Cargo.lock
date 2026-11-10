@@ -16,6 +16,11 @@ dependencies = [
 [[package]]
 name = "echo-bsp-qemu-cortex-m"
 version = "0.1.0"
+dependencies = [
+ "echo-arch-api",
+ "echo-ipc",
+ "echo-sched",
+]
 
 [[package]]
 name = "echo-bsp-qemu-riscv-virt"
