@@ -67,7 +67,7 @@
 | **W9** ⛔ | 真机证据 | H7 上 3 节点图 + 72h 稳定性；`evidence/` v1 | **硬件门未过**：无板卡/探针，无数据；D60 未判 |
 | **W10** ✅ | PAL 冻结 | `PAL_VERSION = 0.1.0`；两个后端跑同一 conformance | 80 tests；4 个双后端测试全绿 |
 | **W11** ✅ host | 同一 YAML | 宽/窄通道 + QEMU 摘要对比 | 82 tests；H7 真机未参与（硬件门） |
-| **W12** | 复盘 | 证据包 v1 + 路线决策；更新 08/10 | **D90 Go/No-Go** |
+| **W12** ✅ | 复盘 | 证据包 v1 + Go/No-Go；硬件门保留 | 条件 Go：host/契约完成；D60 未通过 |
 
 > 若某周的任务超过 **2 个晚上**仍未完成，砍范围而不是延期：先保链路，后保功能。
 
@@ -191,7 +191,7 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [ ] W9：H7 真机证据（⛔ 硬件门：无板卡/探针，无数据）
 - [x] W10：PAL v0.1 冻结 + 第二后端 conformance（80 tests）
 - [x] W11 host：宽/窄通道 + QEMU 摘要对比（82 tests）
-- [ ] W12：D90 评审（Go / 条件 Go / No-Go），硬件门保留
+- [x] W12：D90 评审（条件 Go；D60 未通过，硬件门保留）
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -223,3 +223,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-11 | W9 | ⛔ 硬件门：无板卡/探针，无数据 | [20-h7-evidence](20-h7-evidence.md) |
 | 2026-11-11 | W10 | PAL v0.1 冻结 + 第二后端 | 80 tests；[21-pal-freeze](21-pal-freeze.md) |
 | 2026-11-11 | W11（host） | 宽/窄通道 + QEMU 摘要对比 | 82 tests；[22-two-backends](22-two-backends.md) |
+| 2026-11-11 | W12 | D90 评审：条件 Go；D60 未通过 | 82 tests；[23-d90](23-d90-review.md) |
