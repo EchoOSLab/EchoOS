@@ -171,8 +171,9 @@ echoos/                                    # workspace 根
 │       └── echo-conformance/              # 跨平台一致性测试套件（同一份测试跑所有 arch）
 │
 ├── bsp/                                   # ── 板级支持包（每个 = 一个可执行目标）
-│   ├── echo-bsp-qemu-cortex-m/            # QEMU mps2-an385 (Cortex-M3)，CI 用
+│   ├── echo-bsp-qemu-cortex-m/            # QEMU mps2-an385/an500 (Cortex-M3/M7)，CI 用
 │   ├── echo-bsp-qemu-riscv-virt/          # QEMU virt (RV32IMAC)，可移植性验证
+│   ├── echo-bsp-qemu-x86/                 # QEMU x86_64 + OVMF (UEFI)，三架构冒烟测试
 │   ├── echo-bsp-nucleo-h743zi/            # ★ 首选真机：STM32H743 (Cortex-M7 @480MHz,
 │   │                                      #   D-Cache + TCM) —— 见 02 §2.6.3
 │   ├── echo-bsp-stm32h7-joint/            # ★ 关节控制器参考设计（电机驱动 + CAN-FD）

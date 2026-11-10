@@ -7,7 +7,7 @@ name = "echo-bsp-qemu-cortex-m"
 version = "0.1.0"
 
 [[package]]
-name = "echo-bsp-qemu-riscv"
+name = "echo-bsp-qemu-riscv-virt"
 version = "0.1.0"
 
 [[package]]

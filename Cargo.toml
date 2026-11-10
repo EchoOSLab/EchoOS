@@ -2,7 +2,7 @@
 resolver = "3"
 members = [
     "bsp/echo-bsp-qemu-cortex-m",
-    "bsp/echo-bsp-qemu-riscv",
+    "bsp/echo-bsp-qemu-riscv-virt",
     "bsp/echo-bsp-qemu-x86",
     "xtask",
 ]

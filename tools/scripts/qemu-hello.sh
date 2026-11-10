@@ -22,7 +22,7 @@ check() {
 echo "== build =="
 cargo build --target thumbv7m-none-eabi           -p echo-bsp-qemu-cortex-m
 cargo build --target thumbv7em-none-eabihf        -p echo-bsp-qemu-cortex-m
-cargo build --target riscv32imac-unknown-none-elf -p echo-bsp-qemu-riscv
+cargo build --target riscv32imac-unknown-none-elf -p echo-bsp-qemu-riscv-virt
 cargo build --target x86_64-unknown-uefi          -p echo-bsp-qemu-x86
 
 echo "== run =="
