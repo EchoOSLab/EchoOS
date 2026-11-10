@@ -18,6 +18,7 @@
 | 2026-11-11 | W5-001 | 功能 | QEMU M7 跑生成图（10k 帧 0 丢包） | `7e6390d` |
 | 2026-11-11 | W6-001 | 功能/阻塞 | DWT 时基 + trace + H7 骨架（硬件门未过） | `cae43db` |
 | 2026-11-11 | W7-001 | 功能/部分 | 抢占决策 + RR；PendSV/SVC 占位 | `6500987` |
+| 2026-11-11 | W8-001 | 功能 | 时间队列 + bench 直方图 + DWT 回绕 | `285540b` |
 
 ---
 
@@ -330,6 +331,39 @@ cargo xtask graph / hello                   仍 PASS
 2. `echo-bench`：P50/P99/P99.9/max 直方图 + JSON/CSV；
 3. DWT/SysTick 回绕处理（真机门）；
 4. 新增 `docs/19-time-and-bench.md`，追加 `W8-001`。
+
+---
+
+## 2026-11-11 · W8-001 · 时间队列 + bench 直方图 + DWT 回绕
+
+**目标**：实现 host 可测的时间/测量基础设施，并补上 DWT 32 位回绕。
+
+**改动**：
+- `crates/kernel/echo-time`：`DelayQueue`、`deadline_after`/`is_due` + 9 个测试。
+- `crates/test/echo-bench`：`Histogram`、`Summary`、JSON/CSV + 6 个测试。
+- `crates/arch/echo-arch-cortex-m`：`wrap_period_ns`、`extend_monotonic`、`epoch_ns` + 3 个回绕测试。
+- `docs/19-time-and-bench.md`：契约、百分位算法、回绕语义、限制。
+
+**验证**：
+```text
+cargo test                         76 passed, 0 failed
+cargo clippy                       无警告
+cargo xtask graph / hello          仍 PASS
+cargo build --target thumbv7em ... OK
+```
+
+**决策/偏差**：
+- **D-030**：百分位用整数 `div_ceil`，不引浮点。
+- **D-031**：`Histogram<N>` 固定容量，满时拒绝而非覆盖。
+- **D-032**：DWT 回绕用 `epoch_ns` 累加；480 MHz 周期 8,947,848,533 ns 有断言。
+- **D-033**：时间队列与 `Arch` 解耦，host 可测。
+- **边界**：`echo-bench` 目前只有 host 数学测试；**没有**真机抖动数据。
+
+**下一步（W9）**：
+1. 新增 `docs/20-h7-evidence.md`：实验设计、测量步骤、报告模板、验收阈值；
+2. 硬件门未过则明确写"无数据"，不写通过；
+3. 硬件到位后：DWT 直方图 + 逻辑分析仪 GPIO 翻转 + 72h 稳定性；
+4. W10 先做 host 可完成的 PAL 冻结 + 第二后端 conformance。
 
 ---
 
