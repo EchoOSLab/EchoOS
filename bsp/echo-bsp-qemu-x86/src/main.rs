@@ -26,6 +26,13 @@ unsafe fn inb(port: u16) -> u8 {
     val
 }
 
+#[inline(always)]
+unsafe fn outw(port: u16, val: u16) {
+    unsafe {
+        core::arch::asm!("out dx, ax", in("dx") port, in("ax") val);
+    }
+}
+
 unsafe fn serial_init() {
     unsafe {
         outb(0x3F9, 0x00); // disable interrupts
@@ -60,6 +67,8 @@ pub extern "efiapi" fn efi_main(
     unsafe {
         serial_init();
         puts(b"Hello EchoOS\r\n");
+        // QEMU isa-debug-exit：写 0x10 → 退出码 (0x10 << 1) | 1 = 33
+        outw(0x501, 0x10);
     }
     loop {
         core::hint::spin_loop();

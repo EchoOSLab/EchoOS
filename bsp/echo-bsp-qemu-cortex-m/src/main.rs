@@ -32,6 +32,12 @@ Reset_Handler:
     ldr  r1, =hello_msg
     bkpt 0xAB
 
+    @ ARM semihosting SYS_EXIT (op = 0x18), ADP_Stopped_ApplicationExit
+    movs r0, #0x18
+    movw r1, #0x0026
+    movt r1, #0x0002
+    bkpt 0xAB
+
 1:  b 1b
     .pool
 

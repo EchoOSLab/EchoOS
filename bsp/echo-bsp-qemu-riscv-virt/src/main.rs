@@ -19,6 +19,11 @@ _start:
     la      a0, hello_msg
     call    puts
 
+    # sifive_test 在 QEMU virt 的 0x100000，写 0x5555 让 QEMU 干净退出
+    li      t0, 0x100000
+    li      t1, 0x5555
+    sw      t1, 0(t0)
+
 1:  wfi
     j       1b
 
