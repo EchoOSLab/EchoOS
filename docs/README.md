@@ -27,6 +27,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [17-h7-bringup.md](17-h7-bringup.md) | H7 bring-up：DWT 时基、trace Sink、硬件门与上板验收清单 | 内核 / 硬件开发者 |
 | [18-preemptive-sched.md](18-preemptive-sched.md) | 抢占调度：位图 + RR、10 个测试、PendSV 占位与边界 | 内核开发者 |
 | [19-time-and-bench.md](19-time-and-bench.md) | 时间队列、bench 直方图（P50/P99/P99.9）、DWT 回绕 | 内核开发者 |
+| [20-h7-evidence.md](20-h7-evidence.md) | H7 抖动实验设计、验收阈值、报告模板（⛔ 硬件门，无数据） | 内核 / 硬件开发者 |
 
 ## 一页纸摘要
 

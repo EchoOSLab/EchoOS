@@ -64,7 +64,7 @@
 | **W6** ⚠️ | H7 bring-up | Cortex-M DWT 时基 + `echo-trace` + H7 骨架；UART 待硬件 | 代码编译通过；**硬件门未过**（无探针/板卡），无真机日志 |
 | **W7** ⚠️ | 抢占调度 | `PreemptiveScheduler`（位图 + RR）+ 10 host tests；PendSV/SVC 占位 | 决策逻辑通过；真机上下文切换待硬件门 |
 | **W8** ✅ host | 时间与基准 | `echo-time` 延时队列 + `echo-bench` 直方图 + DWT 回绕 | 76 tests；真机时序仍待硬件门 |
-| **W9** | 真机证据 | H7 上 3 节点图 + 72h 稳定性（可先 8h）；`evidence/` v1 | 真机 P50/P99/max + 复现脚本；**D60 门** |
+| **W9** ⛔ | 真机证据 | H7 上 3 节点图 + 72h 稳定性；`evidence/` v1 | **硬件门未过**：无板卡/探针，无数据；D60 未判 |
 | **W10** | PAL 冻结 | PAL v0.1 冻结；`dora-pal-conformance` 用例对接；Linux/mock 第二后端 | 两后端 conformance 100% |
 | **W11** | 同一 YAML | 同一份 dataflow 在 EchoOS-H7 与第二后端运行；对比报告 | trace 语义一致；差异有解释 |
 | **W12** | 复盘 | 证据包 v1 + 路线决策；更新 08/10 | **D90 Go/No-Go** |
@@ -188,7 +188,8 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] W7 决策逻辑：抢占 + RR 位图调度（host 10 个测试）
 - [ ] W7 硬件门：PendSV/PSP 真实上下文切换（缺 H7）
 - [x] W8 host：`echo-time` 延时队列 + `echo-bench` 直方图 + DWT 回绕（76 tests）
-- [ ] W9：H7 真机证据（**硬件门**，当前无板卡/探针）
+- [ ] W9：H7 真机证据（⛔ 硬件门：无板卡/探针，无数据）
+- [ ] W10：PAL v0.1 冻结 + 第二后端 conformance（host 可完成）
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -217,3 +218,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-11 | W6（部分） | DWT 时基 + trace + H7 骨架；硬件门未过 | 48 tests；[17-h7](17-h7-bringup.md) |
 | 2026-11-11 | W7（部分） | 抢占决策 + RR；PendSV 占位 | 58 tests；[18-preempt](18-preemptive-sched.md) |
 | 2026-11-11 | W8（host） | 时间队列 + 直方图 + DWT 回绕 | 76 tests；[19-time](19-time-and-bench.md) |
+| 2026-11-11 | W9 | ⛔ 硬件门：无板卡/探针，无数据 | [20-h7-evidence](20-h7-evidence.md) |
