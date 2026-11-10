@@ -66,7 +66,7 @@
 | **W8** ✅ host | 时间与基准 | `echo-time` 延时队列 + `echo-bench` 直方图 + DWT 回绕 | 76 tests；真机时序仍待硬件门 |
 | **W9** ⛔ | 真机证据 | H7 上 3 节点图 + 72h 稳定性；`evidence/` v1 | **硬件门未过**：无板卡/探针，无数据；D60 未判 |
 | **W10** ✅ | PAL 冻结 | `PAL_VERSION = 0.1.0`；两个后端跑同一 conformance | 80 tests；4 个双后端测试全绿 |
-| **W11** | 同一 YAML | 同一份 dataflow 在 EchoOS-H7 与第二后端运行；对比报告 | trace 语义一致；差异有解释 |
+| **W11** ✅ host | 同一 YAML | 宽/窄通道 + QEMU 摘要对比 | 82 tests；H7 真机未参与（硬件门） |
 | **W12** | 复盘 | 证据包 v1 + 路线决策；更新 08/10 | **D90 Go/No-Go** |
 
 > 若某周的任务超过 **2 个晚上**仍未完成，砍范围而不是延期：先保链路，后保功能。
@@ -190,7 +190,8 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 - [x] W8 host：`echo-time` 延时队列 + `echo-bench` 直方图 + DWT 回绕（76 tests）
 - [ ] W9：H7 真机证据（⛔ 硬件门：无板卡/探针，无数据）
 - [x] W10：PAL v0.1 冻结 + 第二后端 conformance（80 tests）
-- [ ] W11：同一份生成图在两个后端/环境对比
+- [x] W11 host：宽/窄通道 + QEMU 摘要对比（82 tests）
+- [ ] W12：D90 评审（Go / 条件 Go / No-Go），硬件门保留
 - [ ] 下单 `NUCLEO-H743ZI2` + 8 通道逻辑分析仪（若尚未下单）
 
 ---
@@ -221,3 +222,4 @@ CI：`ubuntu-22.04`（与本地 QEMU 6.2 对齐），`apt install qemu-system-ar
 | 2026-11-11 | W8（host） | 时间队列 + 直方图 + DWT 回绕 | 76 tests；[19-time](19-time-and-bench.md) |
 | 2026-11-11 | W9 | ⛔ 硬件门：无板卡/探针，无数据 | [20-h7-evidence](20-h7-evidence.md) |
 | 2026-11-11 | W10 | PAL v0.1 冻结 + 第二后端 | 80 tests；[21-pal-freeze](21-pal-freeze.md) |
+| 2026-11-11 | W11（host） | 宽/窄通道 + QEMU 摘要对比 | 82 tests；[22-two-backends](22-two-backends.md) |

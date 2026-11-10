@@ -21,6 +21,7 @@
 | 2026-11-11 | W8-001 | 功能 | 时间队列 + bench 直方图 + DWT 回绕 | `285540b` |
 | 2026-11-11 | W9-001 | 文档/阻塞 | H7 证据实验设计与报告模板（无数据） | 本条目（docs） |
 | 2026-11-11 | W10-001 | 功能 | PAL v0.1 冻结 + 第二后端（80 tests） | `d7c82fc` |
+| 2026-11-11 | W11-001 | 功能 | 同一生成图宽/窄通道对比（82 tests） | `207104d` |
 
 ---
 
@@ -419,6 +420,35 @@ cargo xtask graph                                  PASS
 1. 同一份生成图在 host 两个后端/通道容量上对比 trace；
 2. 对比 QEMU M7 的摘要结果（只有 OK/帧数/丢包，没有逐帧 trace）；
 3. 新增 `docs/22-two-backends.md`，追加 `W11-001`。
+
+---
+
+## 2026-11-11 · W11-001 · 同一 YAML，两个后端
+
+**目标**：证明同一份 codegen 产物在不同通道容量/运行环境下语义一致。
+
+**改动**：
+- `crates/test/echo-conformance/tests/two_backends_graph.rs`：`Mailbox<8>` vs `Mailbox<2>` 跑同一生成图 10k 帧，对比 count/sum/drops/trace digest。
+- `docs/22-two-backends.md`：host 双后端 + QEMU 摘要对比矩阵。
+
+**验证**：
+```text
+cargo test -p echo-conformance --test two_backends_graph   2 passed
+cargo test                                                 82 passed, 0 failed
+cargo xtask graph                                          PASS（QEMU M7 摘要）
+cargo clippy                                               无警告
+```
+
+**决策/偏差**：
+- **D-040**：trace 用 FNV digest 对比，不打印全量。
+- **D-041**：窄通道选容量 1（`Mailbox<2>`），最苛刻但仍能承载每帧 1 条消息。
+- **D-042**：QEMU 只报摘要，不参与逐帧对比；不把"摘要一致"夸大为"trace 一致"。
+- **边界**：H7 真机没有参与（硬件门）；QEMU 无周期精度。
+
+**下一步（W12）**：
+1. 汇总 D35/D60/D90 证据；
+2. 输出 Go / 条件 Go / No-Go；
+3. 新增 `docs/23-d90-review.md`，追加 `W12-001`，然后结束本轮目标。
 
 ---
 
