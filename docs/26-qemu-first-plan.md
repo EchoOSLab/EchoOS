@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0–Q2 核心 ✅；Q3 核心 ✅（CI 绿）｜ **生效日期**：2026-11-11
+**状态**：Q0–Q3 核心 ✅；Q2 可选 backlog 待清 ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -113,9 +113,9 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ✅ host | 5h |
 | Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | ✅ 任务索引 | 4h |
 | Q2-12 | MPU 区域配置 | 越界访问触发 MemManage（QEMU 支持范围内） | Q2-10 | ⬜ | 8h |
-| Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ⬜ | 5h |
-| Q2-14 | ISR-first / 延迟处理 | ISR 只做最小工作，后半段可测 | Q2-13 | ⬜ | 6h |
-| Q2-15 | 时间队列 + 超时集成 | `sleep_until`/timeout 可唤醒 | Q2-03 | ⬜ | 6h |
+| Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ✅ IRQ0 | 5h |
+| Q2-14 | ISR-first / 延迟处理 | ISR 只做最小工作，后半段可测 | Q2-13 | 🟡 IRQ 入口 | 6h |
+| Q2-15 | 时间队列 + 超时集成 | `sleep_until`/timeout 可唤醒 | Q2-03 | ✅ host | 6h |
 | Q2-16 | PAL QEMU `Platform` | 五域实现，任务/时间/池/通道/trace | Q2-01..15 | ✅ | 8h |
 | Q2-17 | PAL 双后端 conformance | Mock + QEMU 同一套用例全绿 | Q2-16 | ✅ | 4h |
 
@@ -128,7 +128,7 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q3-03 | 故障注入测试 | 空指针/非法指令/越界可复现 | Q3-02 | ✅ udf | 4h |
 | Q3-04 | `-icount` 确定性回归 | 同一输入指令数稳定；非时序证据 | Q1-06 | ✅ | 5h |
 | Q3-05 | GitHub Actions | fmt/clippy/test/QEMU/docs/commit lint | Q0-06 | ✅ run 7 | 6h |
-| Q3-06 | 文档/链接/commit lint | 文档链接 0 broken；英文 commit | Q3-05 | 🟡 docs lint ✅ | 3h |
+| Q3-06 | 文档/链接/commit lint | 文档链接 0 broken；英文 commit | Q3-05 | ✅ docs+commit | 3h |
 | Q3-07 | 第一个公共 alpha tag | `v0.1.0-alpha.1` + release notes | Q3-05 | ✅ | 2h |
 
 ### 4.5 H1 · H750 首启与时钟（P0，硬件门）
@@ -253,12 +253,12 @@ H3-02 ─> H3-03 ─> H3-04
 - QEMU：idle、SysTick 时间片、block/sleep/wake；`cargo xtask sched` PASS；
 - `echo-sync`：Mutex / Semaphore / Event 的 try-only 版本 + 3 个测试。
 
-**Q2 剩余**：
+**Q2 剩余（可选 backlog）**：
 
-1. 等待队列接入 QEMU block/wake（Q2-07/08/09）；
-2. 优先级继承/deadline（Q2-04/05，可后置）；
-3. MPU/NVIC/ISR（Q2-12/13/14）；
-4. 时间队列/timeout（Q2-15）。
+1. 优先级继承/deadline（Q2-04/05）；
+2. 信号量等待队列 QEMU 集成（Q2-08）；
+3. MPU 区域配置（Q2-12）；
+4. ISR 后半段/deferred work（Q2-14）。
 
 **Q2 已完成**：运行时会话、内存池、PAL QEMU + conformance、栈溢出报告。
 
@@ -267,7 +267,6 @@ H3-02 ─> H3-03 ─> H3-04
 - ✅ 故障注入（`udf` → UsageFault + CFSR）；
 - ✅ `-icount` 双跑确定性；
 - ✅ trace ring（host + QEMU PAL）；
-- ✅ 文档 link/table lint；
+- ✅ 文档 link/table lint + commit lint；
 - ✅ alpha tag `v0.1.0-alpha.1`；
-- ✅ GitHub Actions 已绿（run 7，1m49s；runner 固定 ubuntu-24.04）；
-- 🟡 commit lint 仍手动。
+- ✅ GitHub Actions 已绿（run 8，runner 固定 ubuntu-24.04）。

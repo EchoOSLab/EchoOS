@@ -36,6 +36,8 @@
 | 2026-11-11 | Q2-005 | 功能 | QEMU mutex 等待队列 + 调度临界区 | `b700ee4` |
 | 2026-11-11 | Q3-003 | 工程 | docs lint + alpha tag `v0.1.0-alpha.1` | 本条目 |
 | 2026-11-11 | Q3-004 | 工程 | CI 修复：ubuntu-24.04 + QEMU 包；run 7 绿 | `e5c4950` |
+| 2026-11-11 | Q2-006 | 功能 | NVIC IRQ + timeout 集成 | `a72f75f` |
+| 2026-11-11 | Q3-005 | 工程 | commit lint + CI 首绿确认 | `a72f75f` |
 
 ---
 
@@ -910,6 +912,37 @@ commit lint 仍为人工约定。
 **下一步**：
 1. 移动 alpha tag 到包含 CI 修复的最终 commit；
 2. Q2 可选 backlog（优先级继承/MPU/NVIC）或进入 H 阶段。
+
+---
+
+## 2026-11-11 · Q2-006 / Q3-005 · NVIC IRQ、timeout、commit lint
+
+**目标**：补 Q2-13/15，并把 Q3-06 的 commit lint 自动化。
+
+**改动**：
+- `sched_main`：NVIC IRQ0 软件触发 + 向量表 + `irq=1`；
+- `echo-time`：`DelayQueue` + `PreemptiveScheduler` 的 timeout 集成测试；
+- `tools/scripts/check-commits.sh` + `cargo xtask commits`；CI 加 commit lint；
+- `docs/34`、`docs/32`、`docs/26` 更新。
+
+**验证**：
+```text
+cargo test                 102 passed
+cargo xtask sched          PASS（mutex=1 irq=1）
+cargo xtask docs           checked 37 files: 0 broken / 0 bad
+cargo xtask commits        PASS
+cargo xtask pal/stack/fault/icount  PASS
+```
+
+**决策/偏差**：
+- Q2-13/15 完成；Q2-14 只到 IRQ 入口，没有 deferred work；
+- Q2-04/05/08/12/14 进入可选 backlog；
+- Q0–Q3 核心功能/证据链闭环，但 Q2 backlog 仍保留。
+
+**下一步**：
+1. 跑 CI 确认 run 9 绿；
+2. 决定是否清 Q2 backlog；
+3. 移动 alpha tag 到最终 commit。
 
 ---
 

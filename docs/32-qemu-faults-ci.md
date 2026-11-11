@@ -2,7 +2,7 @@
 
 **状态**：Q3 核心完成；CI 已绿（2026-11-11）
 **已完成**：故障注入、CFSR 状态、`-icount` 确定性、trace ring、docs lint、alpha tag
-**未完成**：commit lint、MPU/NVIC/ISR（Q2 可选 backlog）
+**未完成**：MPU/deferred ISR（Q2 可选 backlog）
 
 ## 1. 故障注入
 

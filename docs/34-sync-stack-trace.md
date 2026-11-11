@@ -120,14 +120,35 @@ cargo xtask graph          PASS
 cargo xtask hello          四目标 PASS
 ```
 
+## 4.1 NVIC IRQ 与 timeout 集成（本轮）
+
+- QEMU sched 增加 NVIC 软件触发 IRQ0：
+  - `NVIC_IPR0` 设优先级、`NVIC_ISER0` 使能、`NVIC_STIR=0` 触发；
+  - 向量表加入 `IRQ0_Handler`；
+  - 输出 `irq=1`。
+- 新增 `echo-time` + `echo-sched` 集成测试：
+  - worker `sleep_until(100)`；
+  - `DelayQueue` 在 99 不唤醒、100 唤醒；
+  - `wake_due(100)` 后调度器重新选 worker。
+
+验收：
+
+```text
+cargo xtask sched
+PASS  qemu-mps2 scheduler (exit=0, 101B)
+... mutex=1 irq=1 ...
+
+cargo test -p echo-time --test scheduler_timeout   1 passed
+```
+
 ## 5. 仍缺
 
 | ID | 任务 | 状态 |
 |---|---|---|
-| Q2-07/08/09 | 等待队列接入 QEMU block/wake、优先级继承、ISR-safe | 🟡 队列 API 完成 |
-| Q2-04/05 | 优先级继承 / deadline | ⬜ |
-| Q2-12/13/14 | MPU/NVIC/ISR-first | ⬜ |
-| Q2-15 | 时间队列 + timeout 集成 | ⬜ |
+| Q2-07/08/09 | 等待队列接入 QEMU block/wake、优先级继承、ISR-safe | 🟡 mutex 已接；sem/PI 待做 |
+| Q2-04/05 | 优先级继承 / deadline | ⬜ backlog |
+| Q2-12/13/14 | MPU/NVIC/ISR-first | 🟡 NVIC IRQ ✅；MPU/deferred 待做 |
+| Q2-15 | 时间队列 + timeout 集成 | ✅ host |
 | Q3-05 | GitHub Actions 首跑确认 | 🟡 |
 | Q3-06/07 | 文档 lint、alpha tag | ⬜ |
 
