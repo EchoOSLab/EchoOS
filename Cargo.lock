@@ -116,6 +116,9 @@ version = "0.1.0"
 [[package]]
 name = "echo-time"
 version = "0.1.0"
+dependencies = [
+ "echo-sched",
+]
 
 [[package]]
 name = "echo-trace"
