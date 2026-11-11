@@ -26,6 +26,7 @@
 | 2026-11-11 | H750-001 | 功能/待上板 | WeAct H750 BSP + OpenOCD 脚本（编译通过） | `0465e1b` |
 | 2026-11-11 | PLAN-001 | 规划 | QEMU-first 开发任务计划（26） | 本条目（docs） |
 | 2026-11-11 | Q0-001 | 功能 | QEMU MPS2 runtime：linker/向量/SysTick/semihosting | `f321b74` |
+| 2026-11-11 | Q1-001 | 功能 | QEMU 真实 PendSV/PSP + 3 任务 10k 切换 | `65a6630` |
 
 ---
 
@@ -585,6 +586,50 @@ cargo xtask hello          四目标 PASS
 4. SVC 入口；
 5. 3 任务抢占 + RR；
 6. 10k 切换压力 + 栈 canary。
+
+---
+
+## 2026-11-11 · Q1-001 · QEMU 真实上下文切换
+
+**目标**：完成 Q1——真实 PendSV/PSP 上下文切换、SVC yield、3 任务抢占/RR、10k 切换 canary、GDB 断点。
+
+**改动**：
+- `bsp/echo-bsp-qemu-mps2/src/context_main.rs`：TCB、MSP/PSP、首次任务异常帧、PendSV、SVC、SysTick、3 任务、canary。
+- `tools/scripts/qemu-context.sh` + `cargo xtask context`。
+- `tools/scripts/qemu-context-gdb.sh`：Q1-07 GDB 断点演练。
+- `docs/28-qemu-context.md`：Q1 契约、栈帧、踩坑与限制。
+- `docs/26-qemu-first-plan.md`：Q1-01..07 标为完成，GQ1 通过。
+
+**验证**：
+```text
+cargo xtask context
+PASS  qemu-mps2 context switch (exit=0, 63B)
+EchoOS MPS2: context OK t0=4937 t1=4945 t2=101 switches=10000
+
+./tools/scripts/qemu-context-gdb.sh
+PASS  qemu-mps2 context GDB breakpoint
+
+cargo test                 82 passed
+cargo xtask graph          PASS
+cargo xtask hello          四目标 PASS
+```
+
+**关键坑**：
+- 首次任务 `TCB.psp` 必须指向 **R4–R11 保存区**，不是硬件异常帧；否则 `ldmia` 会把异常帧当 R4–R11。
+- 切到 PSP 后不能继续执行使用 C 栈的代码；`CONTROL=2`、`msr psp`、触发 PendSV 必须在同一汇编块完成，否则局部变量会覆盖 `DUMMY_STACK`/相邻 `.bss`。
+
+**决策/偏差**：
+- task2 先以优先级 3 抢占 100 轮，再降到 1；task0/1 同优先级 RR；
+- canary 每 1 次切换检查，10k 次后退出；
+- QEMU 仍只证明功能，不产出切换延迟/抖动。
+
+**下一步（Q2）**：
+1. idle 任务；
+2. SysTick 时间片；
+3. block/unblock/sleep/yield；
+4. mutex/semaphore/event；
+5. 静态内存池 + 栈 canary；
+6. PAL QEMU 后端 + conformance。
 
 ---
 

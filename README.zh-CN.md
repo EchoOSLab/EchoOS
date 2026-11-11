@@ -61,6 +61,7 @@ docs/              设计文档、ADR、开发日志、上板与 D90 评审
 - [25 仓库模型：单一开源版本](docs/25-repo-model.md)
 - [26 QEMU-first 开发任务计划](docs/26-qemu-first-plan.md)
 - [27 QEMU MPS2-AN500 runtime（Q0）](docs/27-qemu-runtime.md)
+- [28 QEMU 上下文切换（Q1）](docs/28-qemu-context.md)
 
 ## 边界
 
