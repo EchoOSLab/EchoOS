@@ -43,6 +43,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-bsp-qemu-mps2"
+version = "0.1.0"
+dependencies = [
+ "echo-trace",
+]
+
+[[package]]
 name = "echo-bsp-qemu-riscv-virt"
 version = "0.1.0"
 

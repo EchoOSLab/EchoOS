@@ -13,6 +13,7 @@ members = [
     "crates/test/echo-conformance",
     "tools/codegen",
     "bsp/echo-bsp-qemu-cortex-m",
+    "bsp/echo-bsp-qemu-mps2",
     "bsp/echo-bsp-qemu-riscv-virt",
     "bsp/echo-bsp-qemu-x86",
     "bsp/echo-bsp-nucleo-h743zi",

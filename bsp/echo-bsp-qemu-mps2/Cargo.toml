@@ -1,0 +1,12 @@
+[package]
+name = "echo-bsp-qemu-mps2"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "echo-mps2-runtime"
+path = "src/main.rs"
+
+[dependencies]
+echo-trace.workspace = true
