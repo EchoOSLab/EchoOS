@@ -89,6 +89,10 @@ name = "echo-ipc"
 version = "0.1.0"
 
 [[package]]
+name = "echo-mem"
+version = "0.1.0"
+
+[[package]]
 name = "echo-pal-api"
 version = "0.1.0"
 

@@ -7,6 +7,7 @@ members = [
     "crates/arch/echo-arch-mock",
     "crates/core/echo-trace",
     "crates/kernel/echo-ipc",
+    "crates/kernel/echo-mem",
     "crates/kernel/echo-sched",
     "crates/kernel/echo-sync",
     "crates/kernel/echo-time",
@@ -29,6 +30,7 @@ default-members = [
     "crates/arch/echo-arch-mock",
     "crates/core/echo-trace",
     "crates/kernel/echo-ipc",
+    "crates/kernel/echo-mem",
     "crates/kernel/echo-sched",
     "crates/kernel/echo-sync",
     "crates/kernel/echo-time",
@@ -48,6 +50,7 @@ echo-arch-api = { path = "crates/arch/echo-arch-api" }
 echo-arch-cortex-m = { path = "crates/arch/echo-arch-cortex-m" }
 echo-arch-mock = { path = "crates/arch/echo-arch-mock" }
 echo-ipc = { path = "crates/kernel/echo-ipc" }
+echo-mem = { path = "crates/kernel/echo-mem" }
 echo-pal-api = { path = "crates/api/echo-pal-api" }
 echo-sched = { path = "crates/kernel/echo-sched" }
 echo-sync = { path = "crates/kernel/echo-sync" }

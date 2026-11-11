@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-and-qemu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: thumbv7m-none-eabi,thumbv7em-none-eabihf,riscv32imac-unknown-none-elf,x86_64-unknown-uefi
+
+      - name: Install QEMU and OVMF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-arm qemu-system-misc qemu-system-x86 ovmf
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Host tests
+        run: cargo test
+
+      - name: QEMU hello matrix
+        run: cargo xtask hello
+
+      - name: Q0 runtime
+        run: cargo xtask qemu-runtime
+
+      - name: Q1 context switch
+        run: cargo xtask context
+
+      - name: Q2 scheduler
+        run: cargo xtask sched
+
+      - name: Q3 fault injection
+        run: cargo xtask fault
+
+      - name: Q3 icount determinism
+        run: cargo xtask icount
+
+      - name: QEMU generated graph
+        run: cargo xtask graph
