@@ -62,6 +62,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [23-d90-review.md](23-d90-review.md) | **D90 评审**：证据表、D35/D60/D90 判定、条件 Go 与 No-Go | 决策者 |
 | [24-weact-h750-bringup.md](24-weact-h750-bringup.md) | WeAct H750VBT6 上板：SWD 接线、OpenOCD/GDB、首启与限制 | 内核 / 硬件开发者 |
 | [25-repo-model.md](25-repo-model.md) | 单一开源版本：remote 命名、分支、发布与代码边界 | 维护者 |
+| [26-qemu-first-plan.md](26-qemu-first-plan.md) | **QEMU-first 任务计划**：阶段、任务 ID、依赖、验收与硬件门 | 所有人 |
 
 ## 3. 项目摘要
 

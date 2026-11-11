@@ -24,6 +24,7 @@
 | 2026-11-11 | W11-001 | 功能 | 同一生成图宽/窄通道对比（82 tests） | `83685a4` |
 | 2026-11-11 | W12-001 | 评审 | D90：条件 Go；D60 未通过 | 本条目（docs） |
 | 2026-11-11 | H750-001 | 功能/待上板 | WeAct H750 BSP + OpenOCD 脚本（编译通过） | `0465e1b` |
+| 2026-11-11 | PLAN-001 | 规划 | QEMU-first 开发任务计划（26） | 本条目（docs） |
 
 ---
 
@@ -514,6 +515,38 @@ cargo xtask graph / hello                                           PASS
 2. 配 PLL 480 MHz，改 `CPU_HZ` 并复测 DWT；
 3. UART（PA9/PA10 + USB-TTL）；
 4. W7 真实 PendSV/PSP；W9 逻辑分析仪抖动实验。
+
+---
+
+## 2026-11-11 · PLAN-001 · QEMU-first 开发任务计划
+
+**目标**：把“板子未到货期间如何开发”固化成可执行、可验收、可跟踪的任务列表。
+
+**改动**：
+- `docs/26-qemu-first-plan.md`：Q0–Q3 + H1–H3 任务、依赖、验收、时间估算、Gate。
+- `docs/README.md`：索引加入 26。
+- `README.md` / `README.zh-CN.md`：文档入口加入 26。
+- `docs/10-development-plan.md`：标注后续以 26 为准，保留历史基线。
+
+**验证**：
+```text
+文档链接检查：0 broken
+表格列数检查：一致
+```
+
+**决策/偏差**：
+- **QEMU-first**：H750 未到货，先用 QEMU M7 做真实上下文切换/调度/PAL/CI。
+- **QEMU 只证功能**：不做抖动/WCET 数字；D60 仍待真机。
+- **单一开源版本**：不再有私有下游；所有任务进入同一个公开仓库。
+- **首启 HSI 64 MHz**：PLL 480 等 H1 再验证，不提前写“480 MHz 通过”。
+
+**下一步（Q0）**：
+1. Q0-01 linker script；
+2. Q0-02 完整向量表 + VTOR；
+3. Q0-03 启动代码；
+4. Q0-04 SysTick；
+5. Q0-05 semihosting + exit；
+6. Q0-06 `cargo xtask qemu-runtime`。
 
 ---
 

@@ -65,6 +65,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [23 D90 review](docs/23-d90-review.md)
 - [24 H750 bring-up and debugging](docs/24-weact-h750-bringup.md)
 - [25 Repository model: single open-source version](docs/25-repo-model.md)
+- [26 QEMU-first development task plan](docs/26-qemu-first-plan.md)
 
 ## Scope and honesty boundaries
 
