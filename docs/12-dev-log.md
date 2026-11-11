@@ -38,6 +38,7 @@
 | 2026-11-11 | Q3-004 | 工程 | CI 修复：ubuntu-24.04 + QEMU 包；run 7 绿 | `e5c4950` |
 | 2026-11-11 | Q2-006 | 功能 | NVIC IRQ + timeout 集成 | `a72f75f` |
 | 2026-11-11 | Q3-005 | 工程 | commit lint + CI 首绿确认 | `a72f75f` |
+| 2026-11-11 | Q3-006 | 评审 | Q0–Q3 收口：Gate 证据与 backlog | 本条目 |
 
 ---
 
@@ -943,6 +944,36 @@ cargo xtask pal/stack/fault/icount  PASS
 1. 跑 CI 确认 run 9 绿；
 2. 决定是否清 Q2 backlog；
 3. 移动 alpha tag 到最终 commit。
+
+---
+
+## 2026-11-11 · Q3-006 · Q0–Q3 收口
+
+**目标**：汇总 Q0–Q3 的 gate 证据，明确已完成/backlog，避免“做完功能但没说清边界”。
+
+**改动**：
+- `docs/35-q0-q3-closeout.md`：Gate 表、102 tests、QEMU 数字、交付项、Q2 backlog。
+- `docs/26-qemu-first-plan.md`：GQ2/GQ3 标 ✅。
+- README / docs 索引加入 35。
+
+**证据**：
+```text
+GQ0 qemu-runtime ✅
+GQ1 context 10k ✅
+GQ2 sched + pal ✅
+GQ3 fault + icount + CI ✅
+cargo test 102 passed
+GitHub Actions run 9/10 success
+```
+
+**边界**：
+- Q2-04/05/07/08/09/12/14 进入可选 backlog；
+- 真机 H 阶段尚未开始；
+- QEMU 结果只证明功能，不产出抖动/WCET。
+
+**下一步**：
+1. 移动 alpha tag 到最终 commit；
+2. 进入 H750 板级阶段。
 
 ---
 

@@ -74,6 +74,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [32 QEMU faults, icount, and CI (Q3)](docs/32-qemu-faults-ci.md)
 - [33 PAL QEMU backend and shared conformance (Q2)](docs/33-pal-qemu.md)
 - [34 Sync wait queues, stack overflow, and trace ring (Q2/Q3)](docs/34-sync-stack-trace.md)
+- [35 Q0-Q3 closeout](docs/35-q0-q3-closeout.md)
 
 ## Scope and honesty boundaries
 

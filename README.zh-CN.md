@@ -68,6 +68,7 @@ docs/              设计文档、ADR、开发日志、上板与 D90 评审
 - [32 QEMU 故障、icount 与 CI（Q3）](docs/32-qemu-faults-ci.md)
 - [33 PAL QEMU 后端与共享 conformance（Q2）](docs/33-pal-qemu.md)
 - [34 等待队列、栈溢出报告与 trace ring（Q2/Q3）](docs/34-sync-stack-trace.md)
+- [35 Q0–Q3 收口](docs/35-q0-q3-closeout.md)
 
 ## 边界
 
