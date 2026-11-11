@@ -20,6 +20,7 @@ fn main() {
         "icount" => run_script("tools/scripts/qemu-icount.sh"),
         "pal" => run_script("tools/scripts/qemu-pal.sh"),
         "stack" => run_script("tools/scripts/qemu-stack.sh"),
+        "docs" => run_script("tools/scripts/check-docs.sh"),
         other => {
             eprintln!("unknown xtask: {other}");
             eprintln!(
