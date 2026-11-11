@@ -8,5 +8,10 @@ license.workspace = true
 name = "echo-mps2-runtime"
 path = "src/main.rs"
 
+[[bin]]
+name = "echo-mps2-context"
+path = "src/context_main.rs"
+
 [dependencies]
+echo-sched.workspace = true
 echo-trace.workspace = true

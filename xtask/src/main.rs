@@ -14,9 +14,10 @@ fn main() {
         "hello" | "" => run_script("tools/scripts/qemu-hello.sh"),
         "graph" => run_script("tools/scripts/qemu-graph.sh"),
         "qemu-runtime" => run_script("tools/scripts/qemu-runtime.sh"),
+        "context" => run_script("tools/scripts/qemu-context.sh"),
         other => {
             eprintln!("unknown xtask: {other}");
-            eprintln!("usage: cargo xtask hello|graph|qemu-runtime");
+            eprintln!("usage: cargo xtask hello|graph|qemu-runtime|context");
             std::process::exit(2);
         }
     }
