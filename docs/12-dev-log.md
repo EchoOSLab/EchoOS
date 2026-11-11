@@ -34,6 +34,7 @@
 | 2026-11-11 | Q2-004 | 功能/部分 | sync 等待队列 + 栈溢出报告 | `8722cb9` |
 | 2026-11-11 | Q3-002 | 功能 | trace ring + QEMU PAL 集成 | `8722cb9` |
 | 2026-11-11 | Q2-005 | 功能 | QEMU mutex 等待队列 + 调度临界区 | `b700ee4` |
+| 2026-11-11 | Q3-003 | 工程 | docs lint + alpha tag `v0.1.0-alpha.1` | 本条目 |
 
 ---
 
@@ -850,6 +851,37 @@ cargo xtask pal/stack/fault/icount   PASS
 **下一步**：
 1. 信号量 QEMU 集成 / 优先级继承（可后置）；
 2. Q3 CI 首跑确认、文档 lint、alpha tag。
+
+---
+
+## 2026-11-11 · Q3-003 · docs lint + alpha tag
+
+**目标**：补 Q3-06 的文档检查，并创建第一个公共 alpha tag。
+
+**改动**：
+- `tools/scripts/check-docs.py` + `check-docs.sh`：检查 37 个 Markdown 文件的相对链接与表格列数。
+- `cargo xtask docs`；CI 增加 docs 步骤。
+- `docs/32-qemu-faults-ci.md`、`docs/26-qemu-first-plan.md` 更新 Q3 状态。
+- 创建 tag `v0.1.0-alpha.1`。
+
+**验证**：
+```text
+cargo xtask docs
+checked 37 files: broken_links=0 bad_tables=0
+
+cargo test                 101 passed
+cargo xtask sched/pal/stack/fault/icount   PASS
+```
+
+**边界**：
+- commit lint 仍靠人工（英文 + Conventional Commits），未加自动钩子；
+- GitHub Actions 首跑仍未确认，Q3-05 保持 🟡；
+- alpha tag 是 QEMU 功能里程碑，不代表真机实时性验收。
+
+**下一步**：
+1. 确认 GitHub Actions 首跑；
+2. 补齐 commit lint；
+3. Q2 优先级继承/MPU 等可选 backlog。
 
 ---
 

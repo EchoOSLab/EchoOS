@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅、Q2 sync 运行时/PAL/栈 ✅；Q3 trace ✅ ｜ **生效日期**：2026-11-11
+**状态**：Q0–Q2 核心 ✅；Q3 核心 ✅（CI 首跑待确认）｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -128,8 +128,8 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q3-03 | 故障注入测试 | 空指针/非法指令/越界可复现 | Q3-02 | ✅ udf | 4h |
 | Q3-04 | `-icount` 确定性回归 | 同一输入指令数稳定；非时序证据 | Q1-06 | ✅ | 5h |
 | Q3-05 | GitHub Actions | fmt/clippy/test/QEMU/docs/commit lint | Q0-06 | 🟡 workflow 已加 | 6h |
-| Q3-06 | 文档/链接/commit lint | 文档链接 0 broken；英文 commit | Q3-05 | ⬜ | 3h |
-| Q3-07 | 第一个公共 alpha tag | `v0.1.0-alpha.1` + release notes | Q3-05 | ⬜ | 2h |
+| Q3-06 | 文档/链接/commit lint | 文档链接 0 broken；英文 commit | Q3-05 | 🟡 docs lint ✅ | 3h |
+| Q3-07 | 第一个公共 alpha tag | `v0.1.0-alpha.1` + release notes | Q3-05 | ✅ | 2h |
 
 ### 4.5 H1 · H750 首启与时钟（P0，硬件门）
 
@@ -262,10 +262,12 @@ H3-02 ─> H3-03 ─> H3-04
 
 **Q2 已完成**：运行时会话、内存池、PAL QEMU + conformance、栈溢出报告。
 
-**Q3 进行中**：
+**Q3 核心完成**：
 
 - ✅ 故障注入（`udf` → UsageFault + CFSR）；
 - ✅ `-icount` 双跑确定性；
 - ✅ trace ring（host + QEMU PAL）；
-- 🟡 GitHub Actions workflow 已加，首跑待验证；
-- ⬜ 文档/commit lint、alpha tag。
+- ✅ 文档 link/table lint；
+- ✅ alpha tag `v0.1.0-alpha.1`；
+- 🟡 GitHub Actions 首跑待确认；
+- 🟡 commit lint 仍手动。

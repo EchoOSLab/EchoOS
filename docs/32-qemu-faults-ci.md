@@ -1,8 +1,8 @@
 # 32 · QEMU 故障注入、`-icount` 回归与 CI（Q3 部分）
 
-**状态**：🟡 Q3 进行中（2026-11-11）
-**已完成**：故障注入、CFSR 状态、`-icount` 确定性、GitHub Actions 配置
-**未完成**：trace ring、CI 实际首跑、alpha tag、MPU/NVIC/ISR
+**状态**：Q3 核心完成；CI 首跑待确认（2026-11-11）
+**已完成**：故障注入、CFSR 状态、`-icount` 确定性、trace ring、docs lint、alpha tag
+**未完成**：CI 实际首跑确认、commit lint、MPU/NVIC/ISR
 
 ## 1. 故障注入
 
@@ -65,13 +65,14 @@ cargo xtask context
 cargo xtask sched
 cargo xtask fault
 cargo xtask icount
+cargo xtask docs
 cargo xtask graph
 ```
 
 状态：
 
 - ✅ workflow 已写入；
-- 🟡 **还没有在 GitHub 上实际跑过**（本轮只在本地验证命令链）；
+- 🟡 **还没有在 GitHub 上实际确认首跑结果**（本地命令链全部通过）；
 - 首次 push 后需要看 Actions 结果，再决定是否调 runner/包名。
 
 ## 4. Q3 任务状态
@@ -83,8 +84,8 @@ cargo xtask graph
 | Q3-03 | 故障注入测试 | ✅ `udf` |
 | Q3-04 | `-icount` 确定性回归 | ✅ |
 | Q3-05 | GitHub Actions | 🟡 workflow 已加，首跑待做 |
-| Q3-06 | 文档/commit lint | ⬜ |
-| Q3-07 | alpha tag | ⬜ |
+| Q3-06 | 文档/commit lint | 🟡 文档 lint ✅；commit lint 手动 |
+| Q3-07 | alpha tag | ✅ `v0.1.0-alpha.1` |
 
 ## 5. 限制
 
@@ -101,4 +102,5 @@ cargo xtask graph
 | `tools/scripts/qemu-fault.sh` | 故障验收 |
 | `tools/scripts/qemu-icount.sh` | 确定性回归 |
 | `.github/workflows/ci.yml` | GitHub Actions |
-| `xtask/src/main.rs` | `fault` / `icount` 子命令 |
+| `tools/scripts/check-docs.sh` | 文档链接/表格检查 |
+| `xtask/src/main.rs` | `fault` / `icount` / `docs` 子命令 |
