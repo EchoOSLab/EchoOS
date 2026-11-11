@@ -72,6 +72,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [30 QEMU scheduler runtime: idle, tick, block, sleep (Q2)](docs/30-qemu-scheduler.md)
 - [31 Static memory pool (Q2)](docs/31-memory-pool.md)
 - [32 QEMU faults, icount, and CI (Q3)](docs/32-qemu-faults-ci.md)
+- [33 PAL QEMU backend and shared conformance (Q2)](docs/33-pal-qemu.md)
 
 ## Scope and honesty boundaries
 

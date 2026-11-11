@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅；Q2 内存池 host ✅，Q3 进行中 ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅、Q1 ✅、Q2 PAL ✅；Q3 进行中 ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -116,8 +116,8 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ⬜ | 5h |
 | Q2-14 | ISR-first / 延迟处理 | ISR 只做最小工作，后半段可测 | Q2-13 | ⬜ | 6h |
 | Q2-15 | 时间队列 + 超时集成 | `sleep_until`/timeout 可唤醒 | Q2-03 | ⬜ | 6h |
-| Q2-16 | PAL QEMU `Platform` | 五域实现，任务/时间/池/通道/trace | Q2-01..15 | ⬜ | 8h |
-| Q2-17 | PAL 双后端 conformance | Mock + QEMU 同一套用例全绿 | Q2-16 | ⬜ | 4h |
+| Q2-16 | PAL QEMU `Platform` | 五域实现，任务/时间/池/通道/trace | Q2-01..15 | ✅ | 8h |
+| Q2-17 | PAL 双后端 conformance | Mock + QEMU 同一套用例全绿 | Q2-16 | ✅ | 4h |
 
 ### 4.4 Q3 · 故障、回归与工程化（P1）
 
@@ -257,9 +257,10 @@ H3-02 ─> H3-03 ─> H3-04
 
 1. 栈溢出报告（Q2-11）；
 2. sync 阻塞等待队列（Q2-07/08/09）；
-3. PAL QEMU 后端 + conformance（Q2-16/17）；
-4. 优先级继承/deadline（Q2-04/05，可后置）；
-5. MPU/NVIC/ISR（Q2-12/13/14）。
+3. 优先级继承/deadline（Q2-04/05，可后置）；
+4. MPU/NVIC/ISR（Q2-12/13/14）。
+
+**Q2 已完成**：运行时会话、内存池、PAL QEMU + 共享 conformance。
 
 **Q3 进行中**：
 

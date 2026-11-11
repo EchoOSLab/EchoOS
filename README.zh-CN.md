@@ -66,6 +66,7 @@ docs/              设计文档、ADR、开发日志、上板与 D90 评审
 - [30 QEMU 调度运行时：idle/tick/block/sleep（Q2）](docs/30-qemu-scheduler.md)
 - [31 静态内存池（Q2）](docs/31-memory-pool.md)
 - [32 QEMU 故障、icount 与 CI（Q3）](docs/32-qemu-faults-ci.md)
+- [33 PAL QEMU 后端与共享 conformance（Q2）](docs/33-pal-qemu.md)
 
 ## 边界
 

@@ -30,6 +30,7 @@
 | 2026-11-11 | Q2-001 | 功能/部分 | sleep/wake/idle + Mutex/Semaphore/Event（host） | `54aaec5` |
 | 2026-11-11 | Q2-002 | 功能 | QEMU idle/tick/block/sleep 运行时 | `8246590` |
 | 2026-11-11 | Q3-001 | 功能/部分 | 内存池 + 故障注入 + icount + CI workflow | `aefadf9` |
+| 2026-11-11 | Q2-003 | 功能 | PAL QEMU 后端 + 共享 conformance | `7ced17f` |
 
 ---
 
@@ -741,6 +742,39 @@ cargo xtask icount         PASS（两次日志逐字节一致）
 **下一步**：
 1. Q2 PAL QEMU 后端 + conformance；
 2. 同步原语阻塞等待队列；
+3. Q3 trace ring、CI 首跑、alpha tag。
+
+---
+
+## 2026-11-11 · Q2-003 · PAL QEMU 后端 + 共享 conformance
+
+**目标**：让 PAL 契约在 QEMU 真实 Cortex-M7 runtime 上通过，而不只是 Mock。
+
+**改动**：
+- `echo-conformance::contract::check_common`：host/QEMU 共用的契约检查。
+- `bsp/echo-bsp-qemu-mps2/src/pal_main.rs`：QEMU `Platform` 五域实现（任务/时间/内存池/通道/trace）。
+- `tools/scripts/qemu-pal.sh` + `cargo xtask pal`。
+- `docs/33-pal-qemu.md`：Q2-16/17 契约与限制。
+
+**验证**：
+```text
+cargo test                                          95 passed
+cargo xtask pal                                     PASS
+PAL QEMU: OK
+
+cargo xtask qemu-runtime / context / sched / fault  PASS
+cargo xtask icount                                  PASS
+```
+
+**决策/偏差**：
+- 共享 `check_common` 返回 `Result<(), &'static str>`，裸机端可打印失败原因；
+- QEMU PAL 任务是静态计数，尚未绑到调度器任务表；
+- QEMU 只证明契约功能，不产出时序数据；
+- Q2-07/08/09（阻塞同步队列）与 Q2-11（栈溢出报告）仍未完成。
+
+**下一步**：
+1. 同步原语阻塞等待队列；
+2. 栈溢出报告；
 3. Q3 trace ring、CI 首跑、alpha tag。
 
 ---
