@@ -14,7 +14,8 @@
 use core::panic::PanicInfo;
 use core::sync::atomic::{AtomicBool, AtomicU8, AtomicU32, Ordering};
 
-use echo_sched::preemptive::{PreemptTaskDef, PreemptiveScheduler};
+use echo_sched::preemptive::{PreemptTaskDef, PreemptiveScheduler, TaskState};
+use echo_sync::{LockResult, Mutex, UnlockResult};
 use echo_trace::{SemihostingSink, write_bytes, write_str};
 
 const SYST_CSR: *mut u32 = 0xE000_E010 as *mut u32;
@@ -61,7 +62,14 @@ static TASK1_COUNT: AtomicU32 = AtomicU32::new(0);
 static TASK2_COUNT: AtomicU32 = AtomicU32::new(0);
 static IDLE_COUNT: AtomicU32 = AtomicU32::new(0);
 static SLEEP_WAKE_COUNT: AtomicU32 = AtomicU32::new(0);
+static MUTEX_WAKE_COUNT: AtomicU32 = AtomicU32::new(0);
+static MUTEX_ACQ: AtomicU32 = AtomicU32::new(0);
+static MUTEX_WAIT: AtomicU32 = AtomicU32::new(0);
+static MUTEX_REL: AtomicU32 = AtomicU32::new(0);
+static MUTEX_INV: AtomicU32 = AtomicU32::new(0);
+static MUTEX_OWNER_READY: AtomicBool = AtomicBool::new(false);
 static TICKS: AtomicU32 = AtomicU32::new(0);
+static mut MUTEX: Mutex = Mutex::new();
 static FINISHED: AtomicBool = AtomicBool::new(false);
 
 fn write_boot(text: &'static str) {
@@ -106,6 +114,23 @@ fn report_fault(name: &'static str) -> ! {
     write_hex(unsafe { core::ptr::read_volatile(0xE000_ED38 as *const u32) });
     write_boot("\r\n");
     semihosting_exit()
+}
+
+fn irq_save() -> u32 {
+    let primask: u32;
+    unsafe {
+        core::arch::asm!("mrs {0}, primask", out(reg) primask, options(nomem, nostack));
+        core::arch::asm!("cpsid i", options(nomem, nostack));
+    }
+    primask
+}
+
+fn irq_restore(primask: u32) {
+    if primask & 1 == 0 {
+        unsafe {
+            core::arch::asm!("cpsie i", options(nomem, nostack));
+        }
+    }
 }
 
 fn semihosting_exit() -> ! {
@@ -249,11 +274,41 @@ fn finish() -> ! {
     let c2 = TASK2_COUNT.load(Ordering::Relaxed);
     let idle = IDLE_COUNT.load(Ordering::Relaxed);
     let wake = SLEEP_WAKE_COUNT.load(Ordering::Relaxed);
+    let mutex_wake = MUTEX_WAKE_COUNT.load(Ordering::Relaxed);
     let ticks = TICKS.load(Ordering::Relaxed);
     let switches = SWITCH_COUNT.load(Ordering::Relaxed);
 
-    if c0 == 0 || c1 == 0 || c2 == 0 || idle < IDLE_UNBLOCK_AFTER || wake == 0 || ticks == 0 {
-        write_boot("EchoOS MPS2: sched FAIL\r\n");
+    if c0 == 0
+        || c1 == 0
+        || c2 == 0
+        || idle < IDLE_UNBLOCK_AFTER
+        || wake == 0
+        || mutex_wake == 0
+        || ticks == 0
+    {
+        write_boot("EchoOS MPS2: sched FAIL t0=");
+        write_u32(c0);
+        write_boot(" t1=");
+        write_u32(c1);
+        write_boot(" t2=");
+        write_u32(c2);
+        write_boot(" idle=");
+        write_u32(idle);
+        write_boot(" wake=");
+        write_u32(wake);
+        write_boot(" mutex=");
+        write_u32(mutex_wake);
+        write_boot(" acq=");
+        write_u32(MUTEX_ACQ.load(Ordering::Relaxed));
+        write_boot(" wait=");
+        write_u32(MUTEX_WAIT.load(Ordering::Relaxed));
+        write_boot(" rel=");
+        write_u32(MUTEX_REL.load(Ordering::Relaxed));
+        write_boot(" inv=");
+        write_u32(MUTEX_INV.load(Ordering::Relaxed));
+        write_boot(" ticks=");
+        write_u32(ticks);
+        write_boot("\r\n");
         semihosting_exit();
     }
 
@@ -267,6 +322,8 @@ fn finish() -> ! {
     write_u32(idle);
     write_boot(" wake=");
     write_u32(wake);
+    write_boot(" mutex=");
+    write_u32(mutex_wake);
     write_boot(" ticks=");
     write_u32(ticks);
     write_boot(" switches=");
@@ -286,25 +343,95 @@ fn yield_now() {
 }
 
 fn lower_task2_priority() {
+    let irq = irq_save();
     let sched = unsafe { &mut *core::ptr::addr_of_mut!(SCHED) };
     sched.set_priority(2, 1).expect("lower task2");
+    irq_restore(irq);
 }
 
 fn sleep_current(ticks: u32) {
     let now_ns = u64::from(TICKS.load(Ordering::Relaxed)) * 1_000_000;
     let deadline = now_ns + u64::from(ticks) * 1_000_000;
+    let irq = irq_save();
     let sched = unsafe { &mut *core::ptr::addr_of_mut!(SCHED) };
     sched
         .sleep_until(CURRENT.load(Ordering::Relaxed), deadline)
         .expect("sleep");
+    irq_restore(irq);
     pend_pendsv();
     SLEEP_WAKE_COUNT.fetch_add(1, Ordering::Relaxed);
 }
 
 fn block_self() {
+    let irq = irq_save();
     let sched = unsafe { &mut *core::ptr::addr_of_mut!(SCHED) };
     sched.block(CURRENT.load(Ordering::Relaxed));
+    irq_restore(irq);
     pend_pendsv();
+}
+
+fn mutex() -> &'static Mutex {
+    unsafe { &*core::ptr::addr_of!(MUTEX) }
+}
+
+fn unlock_and_wake(task: u8) {
+    match mutex().unlock_and_wake(task) {
+        UnlockResult::Woken(waiter) => {
+            MUTEX_WAKE_COUNT.fetch_add(1, Ordering::Relaxed);
+            let sched = unsafe { &mut *core::ptr::addr_of_mut!(SCHED) };
+            sched.unblock(waiter);
+        }
+        UnlockResult::Released => {
+            MUTEX_REL.fetch_add(1, Ordering::Relaxed);
+        }
+        UnlockResult::InvalidOwner => {
+            MUTEX_INV.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+}
+
+fn task_state(id: u8) -> Option<TaskState> {
+    let sched = unsafe { &*core::ptr::addr_of!(SCHED) };
+    sched.state(id)
+}
+
+fn mutex_owner() {
+    match mutex().lock_or_wait(0) {
+        LockResult::Acquired => {
+            MUTEX_ACQ.fetch_add(1, Ordering::Relaxed);
+            MUTEX_OWNER_READY.store(true, Ordering::SeqCst);
+            // 等 task1 真正进入 Blocked，避免"先唤醒、后阻塞"的丢唤醒。
+            while task_state(1) != Some(TaskState::Blocked) {
+                yield_now();
+            }
+            unlock_and_wake(0);
+        }
+        LockResult::Waiting => {
+            MUTEX_WAIT.fetch_add(1, Ordering::Relaxed);
+            block_self();
+            unlock_and_wake(0);
+        }
+        LockResult::QueueFull => {}
+    }
+}
+
+fn mutex_waiter() {
+    while !MUTEX_OWNER_READY.load(Ordering::SeqCst) {
+        yield_now();
+    }
+    match mutex().lock_or_wait(1) {
+        LockResult::Waiting => {
+            MUTEX_WAIT.fetch_add(1, Ordering::Relaxed);
+            block_self();
+            // 被 owner 唤醒时所有权已转交给本任务。
+            unlock_and_wake(1);
+        }
+        LockResult::Acquired => {
+            MUTEX_ACQ.fetch_add(1, Ordering::Relaxed);
+            unlock_and_wake(1);
+        }
+        LockResult::QueueFull => {}
+    }
 }
 
 fn task0() {
@@ -314,6 +441,7 @@ fn task0() {
         yield_now();
         rounds += 1;
     }
+    mutex_owner();
     block_self();
 
     sleep_current(SLEEP_TICKS);
@@ -333,6 +461,7 @@ fn task1() {
         yield_now();
         rounds += 1;
     }
+    mutex_waiter();
     block_self();
 
     loop {
@@ -367,10 +496,12 @@ fn idle_task() {
     loop {
         let count = IDLE_COUNT.fetch_add(1, Ordering::Relaxed) + 1;
         if count == IDLE_UNBLOCK_AFTER {
+            let irq = irq_save();
             let sched = unsafe { &mut *core::ptr::addr_of_mut!(SCHED) };
             sched.unblock(0);
             sched.unblock(1);
             sched.unblock(2);
+            irq_restore(irq);
         }
         yield_now();
         if done() {
@@ -435,7 +566,7 @@ fn start_first_task() -> ! {
     unsafe {
         // PendSV 最低优先级，SysTick 次之；此处在 MSP 上完成。
         let shpr3 = core::ptr::read_volatile(SHPR3);
-        core::ptr::write_volatile(SHPR3, (shpr3 & 0x0000_FFFF) | (0xFF << 16) | (0x80 << 24));
+        core::ptr::write_volatile(SHPR3, (shpr3 & 0x0000_FFFF) | (0x80 << 16) | (0xFF << 24));
 
         // 关键：切到 PSP 后不能再执行任何使用 C 栈的代码，
         // 否则局部变量会写进 DUMMY_STACK/相邻 .bss（Q1 调试中实际踩过）。
@@ -488,8 +619,15 @@ pub extern "C" fn UsageFault_Handler() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    fatal("EchoOS MPS2: PANIC\r\n")
+fn panic(info: &PanicInfo) -> ! {
+    write_boot("EchoOS MPS2: PANIC at ");
+    if let Some(location) = info.location() {
+        write_str(&SemihostingSink, location.file());
+        write_boot(":");
+        write_u32(location.line());
+    }
+    write_boot("\r\n");
+    semihosting_exit()
 }
 
 core::arch::global_asm!(

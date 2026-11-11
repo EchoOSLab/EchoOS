@@ -51,6 +51,7 @@ dependencies = [
  "echo-mem",
  "echo-pal-api",
  "echo-sched",
+ "echo-sync",
  "echo-trace",
 ]
 
