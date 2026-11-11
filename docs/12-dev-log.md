@@ -35,6 +35,7 @@
 | 2026-11-11 | Q3-002 | 功能 | trace ring + QEMU PAL 集成 | `8722cb9` |
 | 2026-11-11 | Q2-005 | 功能 | QEMU mutex 等待队列 + 调度临界区 | `b700ee4` |
 | 2026-11-11 | Q3-003 | 工程 | docs lint + alpha tag `v0.1.0-alpha.1` | 本条目 |
+| 2026-11-11 | Q3-004 | 工程 | CI 修复：ubuntu-24.04 + QEMU 包；run 7 绿 | `e5c4950` |
 
 ---
 
@@ -882,6 +883,33 @@ cargo xtask sched/pal/stack/fault/icount   PASS
 1. 确认 GitHub Actions 首跑；
 2. 补齐 commit lint；
 3. Q2 优先级继承/MPU 等可选 backlog。
+
+---
+
+## 2026-11-11 · Q3-004 · GitHub Actions 修复与首绿
+
+**目标**：让 GitHub Actions 真正跑通，而不是只看本地命令链。
+
+**过程**：
+- 前 6 次 run 全部失败，失败步骤都是 `QEMU hello matrix`；
+- GitHub API 日志无权限，改用 Actions 页面 annotation 定位；
+- 发现 `ubuntu-latest` 已迁移到 Ubuntu 26，`qemu-system-misc` 不再提供
+  `qemu-system-riscv32`，脚本因此 `exit 2`；
+- 将 workflow runner 固定为 **`ubuntu-24.04`**；
+- 同时把 QEMU hello 的 UEFI 超时从 40s 提到 120s（共享 runner 更慢）。
+
+**结果**：
+```text
+GitHub Actions run 7: success，1m49s
+Annotations: 仅 Node.js 20 deprecation warning
+```
+
+**状态**：Q3-05 从 🟡 改为 ✅；Q3 核心完成（docs lint + tag + CI）。
+commit lint 仍为人工约定。
+
+**下一步**：
+1. 移动 alpha tag 到包含 CI 修复的最终 commit；
+2. Q2 可选 backlog（优先级继承/MPU/NVIC）或进入 H 阶段。
 
 ---
 

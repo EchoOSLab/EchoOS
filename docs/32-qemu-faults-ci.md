@@ -1,8 +1,8 @@
 # 32 · QEMU 故障注入、`-icount` 回归与 CI（Q3 部分）
 
-**状态**：Q3 核心完成；CI 首跑待确认（2026-11-11）
+**状态**：Q3 核心完成；CI 已绿（2026-11-11）
 **已完成**：故障注入、CFSR 状态、`-icount` 确定性、trace ring、docs lint、alpha tag
-**未完成**：CI 实际首跑确认、commit lint、MPU/NVIC/ISR
+**未完成**：commit lint、MPU/NVIC/ISR（Q2 可选 backlog）
 
 ## 1. 故障注入
 
@@ -72,8 +72,10 @@ cargo xtask graph
 状态：
 
 - ✅ workflow 已写入；
-- 🟡 **还没有在 GitHub 上实际确认首跑结果**（本地命令链全部通过）；
-- 首次 push 后需要看 Actions 结果，再决定是否调 runner/包名。
+- ✅ **GitHub Actions 已绿**：run 7，1m49s；
+- 关键修复：`ubuntu-latest` 已迁移到 Ubuntu 26，缺少 `qemu-system-riscv32`；
+  将 runner 固定为 **`ubuntu-24.04`** 后 QEMU 包齐全；
+- 当前只剩 Node.js 20 deprecation warning，不影响结果。
 
 ## 4. Q3 任务状态
 
