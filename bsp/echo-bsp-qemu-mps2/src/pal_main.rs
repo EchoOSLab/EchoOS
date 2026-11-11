@@ -15,7 +15,7 @@ use echo_pal_api::{
     Capabilities, ChannelApi, MemoryApi, ObservabilityApi, Platform, PoolBlock, StaticTask,
     TaskApi, TaskError, TimeApi,
 };
-use echo_trace::{SemihostingSink, write_str};
+use echo_trace::{Event, EventRing, SemihostingSink, write_str};
 
 const SYST_CSR: *mut u32 = 0xE000_E010 as *mut u32;
 const SYST_RVR: *mut u32 = 0xE000_E014 as *mut u32;
@@ -34,8 +34,7 @@ struct QemuPlatform {
     tasks: Cell<usize>,
     pool: RefCell<BlockPool<BLOCK_SIZE, BLOCKS>>,
     channel: Mailbox<8>,
-    trace_count: Cell<usize>,
-    trace_dropped: Cell<usize>,
+    trace: RefCell<EventRing<TRACE_CAPACITY>>,
 }
 
 impl QemuPlatform {
@@ -44,8 +43,7 @@ impl QemuPlatform {
             tasks: Cell::new(0),
             pool: RefCell::new(BlockPool::new()),
             channel: Mailbox::new(),
-            trace_count: Cell::new(0),
-            trace_dropped: Cell::new(0),
+            trace: RefCell::new(EventRing::new()),
         }
     }
 }
@@ -157,21 +155,20 @@ impl ChannelApi for QemuPlatform {
 }
 
 impl ObservabilityApi for QemuPlatform {
-    fn trace_event(&self, _id: u16, _value: u32) {
-        let count = self.trace_count.get();
-        if count < TRACE_CAPACITY {
-            self.trace_count.set(count + 1);
-        } else {
-            self.trace_dropped.set(self.trace_dropped.get() + 1);
-        }
+    fn trace_event(&self, id: u16, value: u32) {
+        self.trace.borrow_mut().push(Event {
+            id,
+            value,
+            timestamp_ns: self.now_ns(),
+        });
     }
 
     fn event_count(&self) -> usize {
-        self.trace_count.get()
+        self.trace.borrow().len()
     }
 
     fn dropped_events(&self) -> usize {
-        self.trace_dropped.get()
+        self.trace.borrow().dropped()
     }
 }
 

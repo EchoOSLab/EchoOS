@@ -47,6 +47,12 @@ jobs:
       - name: Q2 scheduler
         run: cargo xtask sched
 
+      - name: Q2 PAL conformance
+        run: cargo xtask pal
+
+      - name: Q2 stack overflow report
+        run: cargo xtask stack
+
       - name: Q3 fault injection
         run: cargo xtask fault
 

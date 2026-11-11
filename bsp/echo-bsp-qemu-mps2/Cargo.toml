@@ -31,3 +31,6 @@ echo-mem.workspace = true
 echo-pal-api.workspace = true
 echo-sched.workspace = true
 echo-trace.workspace = true
+
+[features]
+stack-fault = []

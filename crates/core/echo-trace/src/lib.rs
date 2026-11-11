@@ -44,3 +44,76 @@ impl Sink for SemihostingSink {
         }
     }
 }
+
+/// 一条 trace 事件。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Event {
+    pub id: u16,
+    pub value: u32,
+    pub timestamp_ns: u64,
+}
+
+/// 固定容量事件环形缓冲。
+pub struct EventRing<const N: usize> {
+    entries: [Option<Event>; N],
+    head: usize,
+    len: usize,
+    dropped: usize,
+}
+
+impl<const N: usize> EventRing<N> {
+    pub const fn new() -> Self {
+        assert!(N > 0, "EventRing capacity must be > 0");
+        Self {
+            entries: [None; N],
+            head: 0,
+            len: 0,
+            dropped: 0,
+        }
+    }
+
+    pub fn push(&mut self, event: Event) -> bool {
+        if self.len >= N {
+            self.dropped += 1;
+            return false;
+        }
+        let index = (self.head + self.len) % N;
+        self.entries[index] = Some(event);
+        self.len += 1;
+        true
+    }
+
+    pub fn pop(&mut self) -> Option<Event> {
+        if self.len == 0 {
+            return None;
+        }
+        let event = self.entries[self.head].take();
+        self.head = (self.head + 1) % N;
+        self.len -= 1;
+        event
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn dropped(&self) -> usize {
+        self.dropped
+    }
+
+    pub fn clear(&mut self) {
+        self.entries = [None; N];
+        self.head = 0;
+        self.len = 0;
+    }
+}
+
+impl<const N: usize> Default for EventRing<N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

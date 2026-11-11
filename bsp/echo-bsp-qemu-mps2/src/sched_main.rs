@@ -219,13 +219,20 @@ fn init_scheduler() {
     init_task_stack(3, idle_task);
 }
 
-fn canaries_ok() -> bool {
+fn canary_failure() -> Option<usize> {
     for index in 0..TASK_COUNT {
         if unsafe { task_stack_base(index).read_volatile() } != CANARY {
-            return false;
+            return Some(index);
         }
     }
-    true
+    None
+}
+
+fn report_stack_overflow(index: usize) -> ! {
+    write_boot("EchoOS MPS2: STACK OVERFLOW task=");
+    write_u32(index as u32);
+    write_boot("\r\n");
+    semihosting_exit()
 }
 
 fn finish() -> ! {
@@ -407,8 +414,15 @@ pub extern "C" fn pendsv_switch(psp: *mut u32) -> *mut u32 {
     CURRENT.store(next as u8, Ordering::Relaxed);
     SWITCH_COUNT.fetch_add(1, Ordering::Relaxed);
 
-    if !canaries_ok() {
-        fatal("EchoOS MPS2: CANARY FAIL\r\n");
+    #[cfg(feature = "stack-fault")]
+    if SWITCH_COUNT.load(Ordering::Relaxed) == 500 {
+        unsafe {
+            task_stack_base(0).write_volatile(0);
+        }
+    }
+
+    if let Some(index) = canary_failure() {
+        report_stack_overflow(index);
     }
 
     unsafe { (*tcb_ptr(next)).psp }
