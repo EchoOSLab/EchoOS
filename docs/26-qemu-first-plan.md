@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅ 完成；Q2 待开始 ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅、Q1 ✅；Q2 host 逻辑进行中 ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -101,17 +101,17 @@ H3 HIL + 逻辑分析仪 + D60 证据
 
 | ID | 任务 | 产出/验收 | 依赖 | 状态 | 估算 |
 |---|---|---|---|---|---|
-| Q2-01 | idle 任务 | 无就绪任务时进 idle | Q1 | ⬜ | 2h |
+| Q2-01 | idle 任务 | 无就绪任务时进 idle | Q1 | 🟡 host 逻辑 | 2h |
 | Q2-02 | SysTick 时间片抢占 | 同优先级按 tick 轮转 | Q2-01 | ⬜ | 4h |
-| Q2-03 | block/unblock/sleep/yield | 阻塞/唤醒/睡眠顺序正确 | Q2-01 | ⬜ | 6h |
+| Q2-03 | block/unblock/sleep/yield | 阻塞/唤醒/睡眠顺序正确 | Q2-01 | 🟡 host API | 6h |
 | Q2-04 | 优先级继承/天花板 | 无界优先级反转可检测 | Q2-03 | ⬜ | 8h |
 | Q2-05 | deadline/overrun 检测 | 超限计数 + trace | Q2-02 | ⬜ | 4h |
-| Q2-06 | 调度器 host + QEMU 测试 | 同一场景两处结果一致 | Q2-01..05 | ⬜ | 6h |
-| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | ⬜ | 6h |
-| Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | ⬜ | 6h |
-| Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | ⬜ | 4h |
+| Q2-06 | 调度器 host + QEMU 测试 | 同一场景两处结果一致 | Q2-01..05 | 🟡 host 部分 | 6h |
+| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 try-only | 6h |
+| Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | 🟡 try-only | 6h |
+| Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | 🟡 host 部分 | 4h |
 | Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ⬜ | 5h |
-| Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | ⬜ | 4h |
+| Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | 🟡 Q1 已有 canary | 4h |
 | Q2-12 | MPU 区域配置 | 越界访问触发 MemManage（QEMU 支持范围内） | Q2-10 | ⬜ | 8h |
 | Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ⬜ | 5h |
 | Q2-14 | ISR-first / 延迟处理 | ISR 只做最小工作，后半段可测 | Q2-13 | ⬜ | 6h |
@@ -247,13 +247,18 @@ H3-02 ─> H3-03 ─> H3-04
 
 **Q1 ✅（2026-11-11）**：真实 PendSV/PSP、SVC、3 任务抢占/RR、10k 切换 + canary、GDB 断点全部通过。
 
-**下一个 sprint（Q2）**：
+**Q2 进行中（host 部分已完成，2026-11-11）**：
 
-1. idle 任务；
-2. SysTick 时间片；
-3. block/unblock/sleep/yield；
-4. mutex/semaphore/event；
-5. 静态内存池 + 栈 canary；
-6. PAL QEMU 后端 + conformance。
+- 调度器：`Sleeping`、`sleep_until`、`wake_due`、idle 约定；4 个新测试；
+- `echo-sync`：Mutex / Semaphore / Event 的 try-only 版本 + 3 个测试。
 
-**验收**：调度运行时可用；同步原语可测；PAL Mock + QEMU 双后端 conformance 全绿。
+**Q2 剩余（QEMU 集成）**：
+
+1. idle 任务进 QEMU runtime；
+2. SysTick 时间片 + `wake_due`；
+3. block/sleep/yield 的真实切换；
+4. 静态内存池 + 栈溢出报告；
+5. PAL QEMU 后端 + conformance；
+6. 调度器 host/QEMU 一致性测试。
+
+**验收**：QEMU 上 idle/sleep/tick 可观察；PAL Mock + QEMU 双后端 conformance 全绿。

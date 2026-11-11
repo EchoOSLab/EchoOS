@@ -68,6 +68,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [26 QEMU-first development task plan](docs/26-qemu-first-plan.md)
 - [27 QEMU MPS2-AN500 runtime (Q0)](docs/27-qemu-runtime.md)
 - [28 QEMU context switching (Q1)](docs/28-qemu-context.md)
+- [29 Scheduler sleep/wake and sync primitives (Q2 partial)](docs/29-scheduler-sync.md)
 
 ## Scope and honesty boundaries
 

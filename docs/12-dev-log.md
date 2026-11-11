@@ -27,6 +27,7 @@
 | 2026-11-11 | PLAN-001 | 规划 | QEMU-first 开发任务计划（26） | 本条目（docs） |
 | 2026-11-11 | Q0-001 | 功能 | QEMU MPS2 runtime：linker/向量/SysTick/semihosting | `f321b74` |
 | 2026-11-11 | Q1-001 | 功能 | QEMU 真实 PendSV/PSP + 3 任务 10k 切换 | `65a6630` |
+| 2026-11-11 | Q2-001 | 功能/部分 | sleep/wake/idle + Mutex/Semaphore/Event（host） | `54aaec5` |
 
 ---
 
@@ -630,6 +631,39 @@ cargo xtask hello          四目标 PASS
 4. mutex/semaphore/event；
 5. 静态内存池 + 栈 canary；
 6. PAL QEMU 后端 + conformance。
+
+---
+
+## 2026-11-11 · Q2-001 · sleep/wake/idle + 同步原语（host）
+
+**目标**：先完成 Q2 的可 host 测试部分：调度器睡眠/唤醒、idle 约定、同步原语。
+
+**改动**：
+- `echo-sched::preemptive`：`TaskState::Sleeping`、`sleep_until`、`wake_due`、`is_sleeping`；block/unblock/set_priority 处理 Sleeping。
+- `crates/kernel/echo-sync`：Mutex / Semaphore / Event（try-only，单核）。
+- `docs/29-scheduler-sync.md`：Q2 host 契约与剩余项。
+- `docs/26-qemu-first-plan.md`：Q2-01/03/06/07/08/09/11 标为 🟡。
+
+**验证**：
+```text
+cargo test -p echo-sched --test preemptive   14 passed
+cargo test -p echo-sync                      3 passed
+cargo test                                   89 passed
+cargo clippy                                 无警告
+```
+
+**决策/偏差**：
+- idle = 优先级 0 的普通静态任务，不引入特殊分支；
+- sleep 用绝对 deadline + `wake_due(now)`，与时间源解耦；
+- sync 当前只有 `try_*`，阻塞等待队列在 QEMU runtime 集成时接；
+- QEMU idle/sleep/PAL/内存池仍未完成，Q2 保持 🟡。
+
+**下一步（Q2 继续）**：
+1. QEMU runtime 加 idle 任务；
+2. SysTick 推进虚拟时间 + `wake_due`；
+3. 任务 sleep/block 的真实切换；
+4. 静态池 + 栈溢出报告；
+5. PAL QEMU 后端 + conformance。
 
 ---
 
