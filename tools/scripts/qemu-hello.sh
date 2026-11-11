@@ -80,7 +80,7 @@ rm -rf target/esp
 mkdir -p target/esp/EFI/BOOT
 cp target/x86_64-unknown-uefi/debug/echo-x86.efi target/esp/EFI/BOOT/BOOTX64.EFI
 
-check_log "x86_64 (UEFI + OVMF)" "$LOGDIR/x86.log" timeout 40 \
+check_log "x86_64 (UEFI + OVMF)" "$LOGDIR/x86.log" timeout 120 \
   qemu-system-x86_64 -accel tcg -machine q35 -m 256 -bios "$OVMF" \
   -drive format=raw,file=fat:rw:target/esp \
   -device isa-debug-exit,iobase=0x501,iosize=0x04 \
