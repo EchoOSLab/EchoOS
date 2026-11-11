@@ -1,111 +1,84 @@
-# 25 · 仓库模型：公开上游 + 私有下游
+# 25 · 仓库模型：单一开源版本
 
-**状态**：2026-11-11 生效 ｜ **模式**：方案 A（Open Core，Public Upstream）
-**公共上游**：`OpenEchoOS` → `git@github.com:EchoOSLab/EchoOS.git`（remote 名 `github`）
+**状态**：2026-11-11 生效 ｜ **模式**：Single Open-Source Version
+**公开仓库**：`EchoOS` → `git@github.com:EchoOSLab/EchoOS.git`（remote 名 `github`）
 
-## 1. 角色
+## 1. 决策
 
-| 仓库 | 角色 | 远程 |
+**只维护一个开源版本。**
+
+- 不再保留私有 fork / 私有版本；
+- 不再维护第二套内核；
+- 所有代码、文档、测试、发布都在这一个仓库；
+- 旧私有仓库已删除，历史备份保留在仓库外的 bundle 中。
+
+这样做的理由：
+
+1. 单人/小团队没有维护双版本的预算；
+2. 双版本必然 drift，最后变成两个项目；
+3. 开源版本需要成为唯一、可信、可构建的 source of truth；
+4. 商业价值应来自支持、认证、集成、HIL 服务，而不是分叉内核。
+
+## 2. 仓库与远程
+
+| 远程名 | 地址 | 用途 |
 |---|---|---|
-| **OpenEchoOS** | 公共 canonical upstream；唯一 source of truth | `github`（公开） |
-| **EchoOS** | 私有 downstream；客户/商业/认证集成 | `upstream` → GitHub；内部远程（不公开） |
+| **`github`** | `git@github.com:EchoOSLab/EchoOS.git` | **公开 canonical upstream** |
+| `origin` | 内部 `huanguo` 镜像 | 仅备份，不是第二个版本 |
 
-规则：
+- `main` 跟踪 `github/main`；
+- `git push` 默认推送到 `github`；
+- 内部镜像只做备份，不接受独立开发。
 
-1. **只有一个上游**：公共仓库是公共代码的唯一来源；
-2. **单向同步**：公共 → 私有是常态；私有 → 公共必须走干净的 PR；
-3. **公共历史不 rewrite**：打 tag 后尤其禁止；
-4. **私有代码不得直接进入公共**：所有公共提交必须可公开审计。
+## 3. 分支与发布
 
-## 2. 目录与代码边界
+| 项 | 规则 |
+|---|---|
+| 主分支 | `main`，保护，PR + CI |
+| 功能分支 | `feat/*`、`fix/*`，短生命周期 |
+| 发布分支 | `release/0.x` |
+| Tag | `v0.1.0-alpha.1`、`v0.1.0` |
+| 合并 | Squash merge，保持公共历史干净 |
 
-| 层 | 公共 OpenEchoOS | 私有 EchoOS |
-|---|---|---|
-| 内核/调度/IPC/时间/PAL/codegen | ✅ | 只做集成 |
-| QEMU/开发板 BSP（H750、Nucleo、QEMU） | ✅ | — |
-| 客户板卡 BSP、原理图、校准 | ❌ | ✅ |
-| 商业现场总线实现、安全认证证据 | 接口/抽象 | ✅ 实现与证据 |
-| 客户数据、HIL 报告、签名密钥 | ❌ | ✅ |
+- 公共历史打 tag 后**不再 rewrite**；
+- 版本遵循 SemVer；
+- 发布说明由 Conventional Commits 生成；
+- 所有 release 必须能从公开源码复现。
 
-**硬规则**：公共 workspace 不得引用私有 crate；公共仓库必须能独立 `cargo test` / `cargo xtask graph`。
+## 4. 代码边界
 
-## 3. 同步流程
+所有进入本仓库的代码都必须是可公开审计的。
 
-### 3.1 公共 → 私有
+| 内容 | 是否入仓 |
+|---|---|
+| 内核/调度/IPC/时间/PAL/codegen | ✅ |
+| QEMU/开发板 BSP | ✅ |
+| 测试、文档、脚本 | ✅ |
+| 客户数据、密钥、签名私钥 | ❌ |
+| 客户 NDA 资料、未公开原理图 | ❌ |
+| 认证机构的受限材料 | ❌（另行保管） |
 
-```bash
-# 私有仓库
-git fetch upstream
-git merge upstream/main        # 私有 main 集成公共发布
-```
+如果未来出现客户定制：优先 upstream；确实不能公开的部分放在仓库**之外**的交付目录，不 fork 内核。
 
-### 3.2 私有 → 公共
-
-```bash
-# 从公共上游切干净分支，禁止把私有历史带过去
-git checkout -b fix/foo upstream/main
-# ... 修改 ...
-git push github fix/foo        # 在 GitHub 开 PR
-```
-
-合并后再同步回私有。规则：**通用修复 upstream-first**；私有 hotfix 若不能公开，必须记录原因并设定期限。
-
-### 3.3 禁止
-
-- 公共仓库配置私有 remote；
-- `git merge` 公共/私有两条无关联历史；
-- 在公共仓库里提交客户名称、密钥、未公开数据；
-- 双向 merge。
-
-## 4. 分支与发布
-
-| 项 | 公共 OpenEchoOS | 私有 EchoOS |
-|---|---|---|
-| 主分支 | `main`（保护，PR + CI） | `main`（集成） |
-| 功能分支 | `feat/*`、`fix/*` | `feat/*`、`customer/*` |
-| 发布分支 | `release/0.x` | 按客户/版本 |
-| Tag | `v0.1.0-alpha.1`、`v0.1.0` | `v0.1.0-private.1` |
-
-- 公共版本 SemVer；PAL v0.1 是第一个 API 边界；
-- 私有版本 = 公共 tag + 私有模块；
-- 公共 tag 必须签名，发布说明由 Conventional Commits 生成。
-
-## 5. CI 与质量门
-
-**公共 CI（无 secrets）**：
+## 5. CI
 
 ```text
 fmt + clippy + test + QEMU matrix + docs link check + commit lint + license check
 ```
 
-**私有 CI（自托管/HIL）**：
+- CI 不依赖私有 runner；
+- 硬件在环/HIL 作为可选工作流，不阻塞公共构建；
+- 没有真机数据时，不写“实时性通过”。
 
-```text
-公共 CI + 客户 BSP + 硬件在环 + 证据归档
-```
+## 6. 维护节奏
 
-公共 PR 不得依赖私有 runner。
+| 周期 | 动作 |
+|---|---|
+| 每周 | issue/PR triage、CI 绿率检查 |
+| 每两周 | alpha 发布 |
+| 每月 | roadmap / RFC 评审 |
+| 每季度 | 许可证、安全、治理复盘 |
 
-## 6. 新下游的迁移规则
+## 7. 一句话
 
-私有仓库若已有独立历史，**不要**直接 `git merge --allow-unrelated-histories`。二选一：
-
-1. 保留旧历史为 `legacy/main`，把 `main` 重置到某个公共 tag，再叠加私有提交；
-2. 新建下游分支，从公共 tag 开始，旧历史只做归档。
-
-迁移前必须备份；迁移后验证：
-
-```bash
-cargo test
-cargo xtask graph
-git log --oneline --graph
-```
-
-## 7. 维护节奏
-
-- 每周：公共 issue/PR triage；私有同步；
-- 每两周：公共 alpha；私有客户构建；
-- 每月：公共 roadmap/RFC；私有认证复盘；
-- 每季度：许可证/安全/治理复盘。
-
-> 公共仓库是产品，私有仓库是交付；不要让私有 WIP 污染公共历史。
+> **一个仓库、一个版本、一个上游；不 fork 内核，不分叉历史。**

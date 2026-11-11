@@ -61,7 +61,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [22-two-backends.md](22-two-backends.md) | 同一份 YAML：宽/窄通道与 QEMU 摘要对比 | 内核 / DoraOS 开发者 |
 | [23-d90-review.md](23-d90-review.md) | **D90 评审**：证据表、D35/D60/D90 判定、条件 Go 与 No-Go | 决策者 |
 | [24-weact-h750-bringup.md](24-weact-h750-bringup.md) | WeAct H750VBT6 上板：SWD 接线、OpenOCD/GDB、首启与限制 | 内核 / 硬件开发者 |
-| [25-repo-model.md](25-repo-model.md) | 公开上游 + 私有下游：remote 命名、同步、发布与代码边界 | 维护者 |
+| [25-repo-model.md](25-repo-model.md) | 单一开源版本：remote 命名、分支、发布与代码边界 | 维护者 |
 
 ## 3. 项目摘要
 

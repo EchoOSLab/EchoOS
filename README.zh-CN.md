@@ -58,6 +58,7 @@ docs/              设计文档、ADR、开发日志、上板与 D90 评审
 - [12 开发日志](docs/12-dev-log.md)
 - [23 D90 评审](docs/23-d90-review.md)
 - [24 H750 上板与调试](docs/24-weact-h750-bringup.md)
+- [25 仓库模型：单一开源版本](docs/25-repo-model.md)
 
 ## 边界
 
