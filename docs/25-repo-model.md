@@ -23,12 +23,11 @@
 
 | 远程名 | 地址 | 用途 |
 |---|---|---|
-| **`github`** | `git@github.com:EchoOSLab/EchoOS.git` | **公开 canonical upstream** |
-| `origin` | 内部 `huanguo` 镜像 | 仅备份，不是第二个版本 |
+| **`github`** | `git@github.com:EchoOSLab/EchoOS.git` | **唯一公开 canonical upstream** |
 
 - `main` 跟踪 `github/main`；
-- `git push` 默认推送到 `github`；
-- 内部镜像只做备份，不接受独立开发。
+- `git push` 只推送到 `github`；
+- 本地备份使用 git bundle，不再配置内部镜像 remote。
 
 ## 3. 分支与发布
 
