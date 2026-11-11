@@ -33,6 +33,7 @@
 | 2026-11-11 | Q2-003 | 功能 | PAL QEMU 后端 + 共享 conformance | `7ced17f` |
 | 2026-11-11 | Q2-004 | 功能/部分 | sync 等待队列 + 栈溢出报告 | `8722cb9` |
 | 2026-11-11 | Q3-002 | 功能 | trace ring + QEMU PAL 集成 | `8722cb9` |
+| 2026-11-11 | Q2-005 | 功能 | QEMU mutex 等待队列 + 调度临界区 | `b700ee4` |
 
 ---
 
@@ -810,6 +811,44 @@ cargo xtask icount         PASS
 
 **下一步**：
 1. 等待队列接入 QEMU 阻塞/唤醒；
+2. Q3 CI 首跑确认、文档 lint、alpha tag。
+
+---
+
+## 2026-11-11 · Q2-005 · QEMU mutex 等待队列 + 调度临界区
+
+**目标**：把 `echo-sync` 的 mutex 等待队列接到 QEMU 调度器的 block/wake，而不是只做 host 测试。
+
+**改动**：
+- `sched_main`：task0 owner / task1 waiter 的确定性 mutex handoff；
+- `unlock_and_wake` 把 owner 交给 waiter 并 `sched.unblock`；
+- 线程态调度器修改加 PRIMASK 临界区；
+- PendSV 优先级 0x80、SysTick 0xFF，避免 SysTick 抢占 PendSV；
+- 输出增加 `mutex=1`。
+
+**验证**：
+```text
+cargo xtask sched
+PASS  qemu-mps2 scheduler (exit=0, 95B)
+EchoOS MPS2: sched OK ... mutex=1 switches=20000
+连续 15 次 QEMU 运行均 OK
+
+cargo test                 101 passed
+cargo xtask pal/stack/fault/icount   PASS
+```
+
+**关键 bug**：
+- 初版间歇性 `PANIC at preemptive.rs:242`（`transition_to` 越界）；
+- 根因：SysTick 可打断线程态/PendSV 的调度器修改，`priority_bitmap` 与 `task_mask` 不一致；
+- 修复：临界区 + 异常优先级 + “等 waiter 真正 Blocked 再 unlock”。
+
+**边界**：
+- 仍无优先级继承（Q2-07 保持 🟡）；
+- 信号量等待队列只在 host，QEMU 只接了 mutex；
+- QEMU 只证明功能。
+
+**下一步**：
+1. 信号量 QEMU 集成 / 优先级继承（可后置）；
 2. Q3 CI 首跑确认、文档 lint、alpha tag。
 
 ---

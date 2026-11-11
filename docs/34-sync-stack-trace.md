@@ -78,6 +78,35 @@ pub struct EventRing<const N: usize>;
 cargo test -p echo-trace --test ring   3 passed
 ```
 
+## 3.1 QEMU mutex handoff（本轮）
+
+`sched_main` 里增加了确定性 mutex 竞争：
+
+- task0 先 `lock_or_wait(0)` 成为 owner，设置 `MUTEX_OWNER_READY`；
+- task1 等 owner ready 后 `lock_or_wait(1)` → `Waiting`，进入 `block_self`；
+- task0 等 task1 真正 `Blocked` 后 `unlock_and_wake(0)`；
+- `unlock_and_wake` 把 owner 直接交给 task1，并 `sched.unblock(1)`；
+- task1 醒来后已持有锁，再 unlock。
+
+输出增加 `mutex=1`：
+
+```text
+EchoOS MPS2: sched OK t0=... t1=... t2=... idle=100 wake=1 mutex=1 ticks=... switches=20000
+```
+
+**调试中发现的关键问题**：初版会出现间歇性
+`PANIC at crates/kernel/echo-sched/src/preemptive.rs:242`（`transition_to` 索引越界）。
+原因是 **SysTick 可以打断线程态/PendSV 中的调度器修改**，导致 `priority_bitmap` 与
+`task_mask` 不一致，`pick_next` 算出越界 id。
+
+修复：
+
+1. 线程态 `sleep/block/set_priority/unblock` 用 PRIMASK 临界区包住；
+2. PendSV 优先级改为 `0x80`，SysTick 改为 `0xFF`，SysTick 不再抢占 PendSV；
+3. mutex 使用“等 waiter 真正 Blocked 再 unlock”的顺序，避免丢唤醒。
+
+修复后连续 15 次 QEMU 运行均 `sched OK`。
+
 ## 4. 验证
 
 ```text

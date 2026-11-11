@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅、Q2 PAL/栈 ✅；Q3 trace ✅ ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅、Q1 ✅、Q2 sync 运行时/PAL/栈 ✅；Q3 trace ✅ ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -107,9 +107,9 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q2-04 | 优先级继承/天花板 | 无界优先级反转可检测 | Q2-03 | ⬜ | 8h |
 | Q2-05 | deadline/overrun 检测 | 超限计数 + trace | Q2-02 | ⬜ | 4h |
 | Q2-06 | 调度器 host + QEMU 测试 | 同一场景两处结果一致 | Q2-01..05 | ✅ | 6h |
-| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 wait queue | 6h |
+| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 runtime handoff | 6h |
 | Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | 🟡 sem queue | 6h |
-| Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | 🟡 host 部分 | 4h |
+| Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | 🟡 BSP critical | 4h |
 | Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ✅ host | 5h |
 | Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | ✅ 任务索引 | 4h |
 | Q2-12 | MPU 区域配置 | 越界访问触发 MemManage（QEMU 支持范围内） | Q2-10 | ⬜ | 8h |
