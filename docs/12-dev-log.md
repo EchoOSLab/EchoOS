@@ -25,6 +25,7 @@
 | 2026-11-11 | W12-001 | 评审 | D90：条件 Go；D60 未通过 | 本条目（docs） |
 | 2026-11-11 | H750-001 | 功能/待上板 | WeAct H750 BSP + OpenOCD 脚本（编译通过） | `0465e1b` |
 | 2026-11-11 | PLAN-001 | 规划 | QEMU-first 开发任务计划（26） | 本条目（docs） |
+| 2026-11-11 | Q0-001 | 功能 | QEMU MPS2 runtime：linker/向量/SysTick/semihosting | `f321b74` |
 
 ---
 
@@ -547,6 +548,43 @@ cargo xtask graph / hello                                           PASS
 4. Q0-04 SysTick；
 5. Q0-05 semihosting + exit；
 6. Q0-06 `cargo xtask qemu-runtime`。
+
+---
+
+## 2026-11-11 · Q0-001 · QEMU MPS2-AN500 runtime
+
+**目标**：完成 Q0——QEMU Cortex-M7 的最小 runtime 骨架，为 Q1 真实上下文切换打地基。
+
+**改动**：
+- `bsp/echo-bsp-qemu-mps2`：linker script、16 个系统向量 + VTOR、`.data/.bss`、FPU、SysTick、semihosting、`SYS_EXIT`。
+- `tools/scripts/qemu-runtime.sh` + `cargo xtask qemu-runtime`。
+- `docs/27-qemu-runtime.md`：Q0 契约与验收。
+- `docs/26-qemu-first-plan.md`：Q0-01..06 标为完成，GQ0 通过。
+
+**验证**：
+```text
+cargo xtask qemu-runtime
+PASS  qemu-mps2 runtime (exit=0, 44B)
+日志：EchoOS MPS2: boot / systick OK
+
+cargo test                 82 passed
+cargo xtask graph          PASS
+cargo xtask hello          四目标 PASS
+```
+
+**决策/偏差**：
+- MPS2-AN500 代码区 `0x0000_0000`，RAM `0x2000_0000` 256 KB，栈顶 `0x2004_0000`；
+- SysTick 用 25 MHz 标称分频，只验证 tick 功能，**不是实时精度证据**；
+- Q0 的 PendSV/SVC 仍指向 `Default_Handler`，Q1 替换；
+- QEMU 继续只证明功能，不产出抖动/WCET。
+
+**下一步（Q1）**：
+1. TCB/栈帧布局；
+2. MSP/PSP + 首次任务异常帧；
+3. PendSV 保存/恢复；
+4. SVC 入口；
+5. 3 任务抢占 + RR；
+6. 10k 切换压力 + 栈 canary。
 
 ---
 

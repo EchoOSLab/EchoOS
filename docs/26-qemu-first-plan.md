@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：📋 规划完成，待执行 ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅ 完成；Q1 进行中 ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -32,7 +32,7 @@
 | CyclicExecutive + 3 节点图 | ✅ | `echo-sched`、`echo-ipc` |
 | 抢占**决策逻辑** | ✅ | `echo-sched::preemptive` |
 | 真实 PendSV/PSP 上下文切换 | 🟡 占位 `bx lr` | `echo-arch-cortex-m/src/context.rs` |
-| QEMU runtime（linker/向量/SysTick） | 🟡 Hello/Graph 级 | `bsp/echo-bsp-qemu-cortex-m` |
+| QEMU runtime（linker/向量/SysTick） | ✅ Q0 完成 | `bsp/echo-bsp-qemu-mps2` |
 | QEMU PAL 后端 | ⬜ 仅有 Mock | `echo-conformance` |
 | 同步原语 | ⬜ | 无 |
 | MPU/栈保护 | ⬜ | 无 |
@@ -64,7 +64,7 @@ H3 HIL + 逻辑分析仪 + D60 证据
 
 | Gate | 判据 | 不通过怎么办 |
 |---|---|---|
-| **GQ0** | QEMU 启动 + 完整向量 + SysTick + 干净退出 | 回到 linker/启动代码 |
+| **GQ0** ✅ | QEMU 启动 + 完整向量 + SysTick + 干净退出 | 已通过（2026-11-11） |
 | **GQ1** | 3 任务抢占/RR 顺序确定；10k 次切换无栈损坏 | 回到 PendSV/PSP |
 | **GQ2** | 调度服务 + 同步 + PAL QEMU conformance 全绿 | 缩减范围，先保 P0 |
 | **GQ3** | 故障注入可复现；CI 全绿；`-icount` 回归稳定 | 修稳定性，不加功能 |
@@ -78,12 +78,12 @@ H3 HIL + 逻辑分析仪 + D60 证据
 
 | ID | 任务 | 产出/验收 | 依赖 | 状态 | 估算 |
 |---|---|---|---|---|---|
-| Q0-01 | MPS2-AN500 linker script | 代码/向量/栈/数据分区；`readelf` 可验证 | — | ⬜ | 3h |
-| Q0-02 | 完整 16 向量 + VTOR | 故障/中断能进正确 handler | Q0-01 | ⬜ | 3h |
-| Q0-03 | 启动代码：SP、`.data` 拷贝、`.bss` 清零、FPU | 静态变量初值正确；FPU 可用 | Q0-01 | ⬜ | 4h |
-| Q0-04 | SysTick 时基 + tick 计数 | 计数增长；tick 日志稳定 | Q0-03 | ⬜ | 4h |
-| Q0-05 | semihosting trace + `SYS_EXIT` | 启动/失败可区分退出码 | Q0-03 | ⬜ | 2h |
-| Q0-06 | `cargo xtask qemu-runtime` + 脚本 | 一条命令构建/运行/断言 | Q0-01..05 | ⬜ | 3h |
+| Q0-01 | MPS2-AN500 linker script | 代码/向量/栈/数据分区；`readelf` 可验证 | — | ✅ | 3h |
+| Q0-02 | 完整 16 向量 + VTOR | 故障/中断能进正确 handler | Q0-01 | ✅ | 3h |
+| Q0-03 | 启动代码：SP、`.data` 拷贝、`.bss` 清零、FPU | 静态变量初值正确；FPU 可用 | Q0-01 | ✅ | 4h |
+| Q0-04 | SysTick 时基 + tick 计数 | 计数增长；tick 日志稳定 | Q0-03 | ✅ | 4h |
+| Q0-05 | semihosting trace + `SYS_EXIT` | 启动/失败可区分退出码 | Q0-03 | ✅ | 2h |
+| Q0-06 | `cargo xtask qemu-runtime` + 脚本 | 一条命令构建/运行/断言 | Q0-01..05 | ✅ | 3h |
 
 ### 4.2 Q1 · 真实上下文切换（P0）
 
@@ -243,13 +243,15 @@ H3-02 ─> H3-03 ─> H3-04
 
 ## 10. 下一步
 
-**第一个 sprint（Q0）**：
+**Q0 已完成（2026-11-11）**：linker、16 向量 + VTOR、启动、SysTick、semihosting、`cargo xtask qemu-runtime` 全部通过。
 
-1. Q0-01 linker script；
-2. Q0-02 完整向量表 + VTOR；
-3. Q0-03 启动代码；
-4. Q0-04 SysTick；
-5. Q0-05 semihosting + exit；
-6. Q0-06 `cargo xtask qemu-runtime`。
+**下一个 sprint（Q1）**：
 
-**验收**：QEMU 一条命令启动，打印 boot/tick 日志，异常能进 handler，干净退出。
+1. Q1-01 TCB/栈帧布局；
+2. Q1-02 MSP/PSP + 首次任务异常帧；
+3. Q1-03 PendSV 保存/恢复；
+4. Q1-04 SVC 入口；
+5. Q1-05 3 任务抢占 + RR；
+6. Q1-06 10k 切换压力 + 栈 canary。
+
+**验收**：QEMU 上 3 任务顺序确定；10k 次切换后栈 canary 完好。

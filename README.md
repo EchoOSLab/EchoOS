@@ -66,6 +66,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [24 H750 bring-up and debugging](docs/24-weact-h750-bringup.md)
 - [25 Repository model: single open-source version](docs/25-repo-model.md)
 - [26 QEMU-first development task plan](docs/26-qemu-first-plan.md)
+- [27 QEMU MPS2-AN500 runtime (Q0)](docs/27-qemu-runtime.md)
 
 ## Scope and honesty boundaries
 
