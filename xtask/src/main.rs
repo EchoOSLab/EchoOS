@@ -21,6 +21,7 @@ fn main() {
         "pal" => run_script("tools/scripts/qemu-pal.sh"),
         "stack" => run_script("tools/scripts/qemu-stack.sh"),
         "docs" => run_script("tools/scripts/check-docs.sh"),
+        "commits" => run_script("tools/scripts/check-commits.sh"),
         other => {
             eprintln!("unknown xtask: {other}");
             eprintln!(

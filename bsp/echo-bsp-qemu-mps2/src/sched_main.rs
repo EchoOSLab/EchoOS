@@ -23,6 +23,9 @@ const SYST_RVR: *mut u32 = 0xE000_E014 as *mut u32;
 const SYST_CVR: *mut u32 = 0xE000_E018 as *mut u32;
 const ICSR: *mut u32 = 0xE000_ED04 as *mut u32;
 const SHPR3: *mut u32 = 0xE000_ED20 as *mut u32;
+const NVIC_ISER0: *mut u32 = 0xE000_E100 as *mut u32;
+const NVIC_IPR0: *mut u32 = 0xE000_E400 as *mut u32;
+const NVIC_STIR: *mut u32 = 0xE000_EF00 as *mut u32;
 
 const SYST_CSR_ENABLE: u32 = 1 << 0;
 const SYST_CSR_TICKINT: u32 = 1 << 1;
@@ -69,6 +72,7 @@ static MUTEX_REL: AtomicU32 = AtomicU32::new(0);
 static MUTEX_INV: AtomicU32 = AtomicU32::new(0);
 static MUTEX_OWNER_READY: AtomicBool = AtomicBool::new(false);
 static TICKS: AtomicU32 = AtomicU32::new(0);
+static IRQ_COUNT: AtomicU32 = AtomicU32::new(0);
 static mut MUTEX: Mutex = Mutex::new();
 static FINISHED: AtomicBool = AtomicBool::new(false);
 
@@ -275,6 +279,7 @@ fn finish() -> ! {
     let idle = IDLE_COUNT.load(Ordering::Relaxed);
     let wake = SLEEP_WAKE_COUNT.load(Ordering::Relaxed);
     let mutex_wake = MUTEX_WAKE_COUNT.load(Ordering::Relaxed);
+    let irq = IRQ_COUNT.load(Ordering::Relaxed);
     let ticks = TICKS.load(Ordering::Relaxed);
     let switches = SWITCH_COUNT.load(Ordering::Relaxed);
 
@@ -324,6 +329,8 @@ fn finish() -> ! {
     write_u32(wake);
     write_boot(" mutex=");
     write_u32(mutex_wake);
+    write_boot(" irq=");
+    write_u32(irq);
     write_boot(" ticks=");
     write_u32(ticks);
     write_boot(" switches=");
@@ -516,6 +523,23 @@ pub extern "C" fn svc_handler() {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn IRQ0_Handler() {
+    IRQ_COUNT.fetch_add(1, Ordering::Relaxed);
+}
+
+fn irq_init() {
+    unsafe {
+        core::ptr::write_volatile(NVIC_IPR0, 0x40);
+        core::ptr::write_volatile(NVIC_ISER0, 1);
+        core::arch::asm!("cpsie i");
+        core::ptr::write_volatile(NVIC_STIR, 0);
+    }
+    while IRQ_COUNT.load(Ordering::Relaxed) == 0 {
+        core::hint::spin_loop();
+    }
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn SysTick_Handler() {
     let ticks = TICKS.fetch_add(1, Ordering::Relaxed) + 1;
     let now_ns = u64::from(ticks) * 1_000_000;
@@ -593,6 +617,7 @@ fn start_first_task() -> ! {
 #[unsafe(no_mangle)]
 pub extern "C" fn runtime_main() -> ! {
     system_init();
+    irq_init();
     init_scheduler();
     systick_init(CPU_HZ, TICK_HZ);
     start_first_task()
@@ -652,6 +677,7 @@ core::arch::global_asm!(
     .word Default_Handler
     .word PendSV_Handler
     .word SysTick_Handler
+    .word IRQ0_Handler
 
     .section .text.Reset_Handler, "ax"
     .global Reset_Handler

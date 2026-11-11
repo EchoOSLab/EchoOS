@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -28,6 +30,9 @@ jobs:
 
       - name: Docs links and tables
         run: cargo xtask docs
+
+      - name: Commit lint
+        run: cargo xtask commits
 
       - name: Format
         run: cargo fmt --all -- --check
