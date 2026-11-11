@@ -14,6 +14,7 @@ mkdir -p "$LOGDIR"
 
 for bin in cargo qemu-system-arm qemu-system-riscv32 qemu-system-x86_64; do
   if ! command -v "$bin" >/dev/null 2>&1; then
+    echo "::error::MISSING QEMU binary: $bin"
     echo "MISSING: $bin (PATH=$PATH)"
     exit 2
   fi
@@ -73,6 +74,7 @@ check_log "riscv32 (virt)" "$LOGDIR/riscv32.log" timeout 15 \
 OVMF="${OVMF:-/usr/share/ovmf/OVMF.fd}"
 [ -f "$OVMF" ] || OVMF=/usr/share/OVMF/OVMF.fd
 if [ ! -f "$OVMF" ]; then
+  echo "::error::MISSING OVMF firmware (checked /usr/share/ovmf/OVMF.fd and /usr/share/OVMF/OVMF.fd)"
   echo "MISSING: OVMF firmware (set OVMF=/path/to/OVMF.fd)"
   exit 2
 fi
