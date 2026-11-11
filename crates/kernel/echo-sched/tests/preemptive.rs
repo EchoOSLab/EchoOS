@@ -120,3 +120,54 @@ fn highest_priority_bit_is_usable() {
         .unwrap();
     assert_eq!(scheduler.pick_next(), Some(id));
 }
+
+#[test]
+fn idle_task_runs_when_worker_blocks() {
+    let mut scheduler = PreemptiveScheduler::<4>::new();
+    let idle = scheduler.declare(task("idle", 0)).unwrap();
+    let worker = scheduler.declare(task("worker", 1)).unwrap();
+
+    assert_eq!(scheduler.pick_next(), Some(worker));
+    scheduler.block(worker);
+    assert_eq!(scheduler.pick_next(), Some(idle));
+    scheduler.unblock(worker);
+    assert_eq!(scheduler.pick_next(), Some(worker));
+}
+
+#[test]
+fn sleeping_task_wakes_at_deadline() {
+    let mut scheduler = PreemptiveScheduler::<4>::new();
+    let id = scheduler.declare(task("sleeper", 2)).unwrap();
+
+    scheduler.sleep_until(id, 100).unwrap();
+    assert_eq!(scheduler.state(id), Some(TaskState::Sleeping));
+    assert_eq!(scheduler.pick_next(), None);
+
+    assert_eq!(scheduler.wake_due(99), 0);
+    assert_eq!(scheduler.state(id), Some(TaskState::Sleeping));
+    assert_eq!(scheduler.wake_due(100), 1);
+    assert_eq!(scheduler.state(id), Some(TaskState::Ready));
+    assert_eq!(scheduler.pick_next(), Some(id));
+}
+
+#[test]
+fn block_clears_sleep_state() {
+    let mut scheduler = PreemptiveScheduler::<4>::new();
+    let id = scheduler.declare(task("sleeper", 2)).unwrap();
+    scheduler.sleep_until(id, 100).unwrap();
+    scheduler.block(id);
+    assert_eq!(scheduler.state(id), Some(TaskState::Blocked));
+    assert!(!scheduler.is_sleeping(id));
+    assert_eq!(scheduler.wake_due(1000), 0);
+}
+
+#[test]
+fn priority_change_keeps_sleeping_task_parked() {
+    let mut scheduler = PreemptiveScheduler::<4>::new();
+    let id = scheduler.declare(task("sleeper", 2)).unwrap();
+    scheduler.sleep_until(id, 100).unwrap();
+    scheduler.set_priority(id, 5).unwrap();
+    assert_eq!(scheduler.state(id), Some(TaskState::Sleeping));
+    assert_eq!(scheduler.pick_next(), None);
+    assert_eq!(scheduler.wake_due(100), 1);
+}

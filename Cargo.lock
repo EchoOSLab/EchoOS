@@ -101,6 +101,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-sync"
+version = "0.1.0"
+
+[[package]]
 name = "echo-time"
 version = "0.1.0"
 

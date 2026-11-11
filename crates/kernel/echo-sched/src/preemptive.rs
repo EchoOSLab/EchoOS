@@ -16,6 +16,7 @@ pub enum TaskState {
     Ready,
     Running,
     Blocked,
+    Sleeping,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -49,6 +50,8 @@ pub struct PreemptiveScheduler<const N: usize> {
     rr_cursor: [u8; MAX_PRIORITIES],
     running: Option<TaskId>,
     count: usize,
+    wake_at: [u64; MAX_TASKS],
+    sleeping_mask: u64,
 }
 
 impl<const N: usize> PreemptiveScheduler<N> {
@@ -60,6 +63,8 @@ impl<const N: usize> PreemptiveScheduler<N> {
             rr_cursor: [0; MAX_PRIORITIES],
             running: None,
             count: 0,
+            wake_at: [0; MAX_TASKS],
+            sleeping_mask: 0,
         }
     }
 
@@ -96,6 +101,7 @@ impl<const N: usize> PreemptiveScheduler<N> {
             def,
             state: TaskState::Ready,
         });
+        self.wake_at[id] = 0;
         self.mark_ready(id, def.priority);
         self.count += 1;
         Ok(id as TaskId)
@@ -147,6 +153,7 @@ impl<const N: usize> PreemptiveScheduler<N> {
         let priority = slot.def.priority;
         slot.state = TaskState::Blocked;
         self.clear_ready(id as usize, priority);
+        self.clear_sleeping(id as usize);
         if self.running == Some(id) {
             self.running = None;
         }
@@ -158,7 +165,52 @@ impl<const N: usize> PreemptiveScheduler<N> {
         };
         let priority = slot.def.priority;
         slot.state = TaskState::Ready;
+        self.clear_sleeping(id as usize);
         self.mark_ready(id as usize, priority);
+    }
+
+    /// 让任务睡到 `deadline_ns`；到期由 [`Self::wake_due`] 唤醒。
+    pub fn sleep_until(&mut self, id: TaskId, deadline_ns: u64) -> Result<(), SchedError> {
+        let Some(slot) = self.tasks[id as usize].as_mut() else {
+            return Err(SchedError::TaskCapacityExceeded);
+        };
+        let priority = slot.def.priority;
+        slot.state = TaskState::Sleeping;
+        self.clear_ready(id as usize, priority);
+        self.wake_at[id as usize] = deadline_ns;
+        self.sleeping_mask |= 1u64 << (id as usize);
+        if self.running == Some(id) {
+            self.running = None;
+        }
+        Ok(())
+    }
+
+    /// 唤醒所有已到期的睡眠任务，返回唤醒数量。
+    pub fn wake_due(&mut self, now_ns: u64) -> usize {
+        let mut mask = self.sleeping_mask;
+        let mut woken = 0usize;
+        while mask != 0 {
+            let index = mask.trailing_zeros() as usize;
+            mask &= !(1u64 << index);
+            if self.wake_at[index] > now_ns {
+                continue;
+            }
+            let Some(slot) = self.tasks[index] else {
+                continue;
+            };
+            let priority = slot.def.priority;
+            if let Some(slot) = self.tasks[index].as_mut() {
+                slot.state = TaskState::Ready;
+            }
+            self.mark_ready(index, priority);
+            self.sleeping_mask &= !(1u64 << index);
+            woken += 1;
+        }
+        woken
+    }
+
+    pub fn is_sleeping(&self, id: TaskId) -> bool {
+        self.sleeping_mask & (1u64 << (id as usize)) != 0
     }
 
     pub fn set_priority(&mut self, id: TaskId, priority: u8) -> Result<(), SchedError> {
@@ -169,11 +221,11 @@ impl<const N: usize> PreemptiveScheduler<N> {
             return Err(SchedError::TaskCapacityExceeded);
         };
         let old = slot.def.priority;
-        let blocked = slot.state == TaskState::Blocked;
+        let parked = matches!(slot.state, TaskState::Blocked | TaskState::Sleeping);
         slot.def.priority = priority;
 
         self.clear_ready(id as usize, old);
-        if !blocked {
+        if !parked {
             self.mark_ready(id as usize, priority);
         }
         Ok(())
@@ -198,6 +250,11 @@ impl<const N: usize> PreemptiveScheduler<N> {
         let bit = 1u64 << id;
         self.task_mask[priority as usize] |= bit;
         self.priority_bitmap |= 1u32 << priority;
+    }
+
+    fn clear_sleeping(&mut self, id: usize) {
+        self.sleeping_mask &= !(1u64 << id);
+        self.wake_at[id] = 0;
     }
 
     fn clear_ready(&mut self, id: usize, priority: u8) {
