@@ -29,6 +29,7 @@
 | 2026-11-11 | Q1-001 | 功能 | QEMU 真实 PendSV/PSP + 3 任务 10k 切换 | `65a6630` |
 | 2026-11-11 | Q2-001 | 功能/部分 | sleep/wake/idle + Mutex/Semaphore/Event（host） | `54aaec5` |
 | 2026-11-11 | Q2-002 | 功能 | QEMU idle/tick/block/sleep 运行时 | `8246590` |
+| 2026-11-11 | Q3-001 | 功能/部分 | 内存池 + 故障注入 + icount + CI workflow | `aefadf9` |
 
 ---
 
@@ -706,6 +707,41 @@ cargo xtask hello          四目标 PASS
 2. sync 阻塞等待队列；
 3. PAL QEMU 后端 + conformance；
 4. Q3 故障处理 / `-icount` / GitHub Actions。
+
+---
+
+## 2026-11-11 · Q3-001 · 内存池、故障注入、icount、CI
+
+**目标**：补 Q2-10 静态内存池，并推进 Q3 的故障/回归/CI。
+
+**改动**：
+- `crates/kernel/echo-mem`：`BlockPool<BLOCK_SIZE, BLOCKS>` + 5 个测试。
+- `bsp/echo-bsp-qemu-mps2/src/fault_main.rs`：`udf` 故障注入 + CFSR/HFSR 输出。
+- `tools/scripts/qemu-fault.sh`、`qemu-icount.sh` + `cargo xtask fault|icount`。
+- `.github/workflows/ci.yml`：fmt/clippy/test/QEMU 全链路。
+- `docs/31-memory-pool.md`、`docs/32-qemu-faults-ci.md`。
+
+**验证**：
+```text
+cargo test                 94 passed
+cargo xtask qemu-runtime   PASS
+cargo xtask context        PASS
+cargo xtask sched          PASS
+cargo xtask fault          PASS
+EchoOS MPS2: USAGEFAULT cfsr=0x00010000 hfsr=0x00000000
+cargo xtask icount         PASS（两次日志逐字节一致）
+```
+
+**决策/偏差**：
+- 内存池 host 完成，尚未接 PAL/QEMU；
+- 故障注入只覆盖 `udf → UsageFault`；MemManage/BusFault 只有 handler；
+- CI workflow 已加，但**尚未在 GitHub 上实际跑过**，不能声称 CI 绿；
+- `-icount` 只证明确定性，不证明时序。
+
+**下一步**：
+1. Q2 PAL QEMU 后端 + conformance；
+2. 同步原语阻塞等待队列；
+3. Q3 trace ring、CI 首跑、alpha tag。
 
 ---
 

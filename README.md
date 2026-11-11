@@ -70,6 +70,8 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [28 QEMU context switching (Q1)](docs/28-qemu-context.md)
 - [29 Scheduler sleep/wake and sync primitives (Q2 partial)](docs/29-scheduler-sync.md)
 - [30 QEMU scheduler runtime: idle, tick, block, sleep (Q2)](docs/30-qemu-scheduler.md)
+- [31 Static memory pool (Q2)](docs/31-memory-pool.md)
+- [32 QEMU faults, icount, and CI (Q3)](docs/32-qemu-faults-ci.md)
 
 ## Scope and honesty boundaries
 

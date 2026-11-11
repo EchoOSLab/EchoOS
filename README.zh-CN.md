@@ -64,6 +64,8 @@ docs/              设计文档、ADR、开发日志、上板与 D90 评审
 - [28 QEMU 上下文切换（Q1）](docs/28-qemu-context.md)
 - [29 调度 sleep/wake 与同步原语（Q2 部分）](docs/29-scheduler-sync.md)
 - [30 QEMU 调度运行时：idle/tick/block/sleep（Q2）](docs/30-qemu-scheduler.md)
+- [31 静态内存池（Q2）](docs/31-memory-pool.md)
+- [32 QEMU 故障、icount 与 CI（Q3）](docs/32-qemu-faults-ci.md)
 
 ## 边界
 

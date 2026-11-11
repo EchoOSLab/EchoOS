@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅；Q2 运行时核心 ✅，PAL/内存池待做 ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅、Q1 ✅；Q2 内存池 host ✅，Q3 进行中 ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -110,7 +110,7 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 try-only | 6h |
 | Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | 🟡 try-only | 6h |
 | Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | 🟡 host 部分 | 4h |
-| Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ⬜ | 5h |
+| Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ✅ host | 5h |
 | Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | 🟡 Q1 已有 canary | 4h |
 | Q2-12 | MPU 区域配置 | 越界访问触发 MemManage（QEMU 支持范围内） | Q2-10 | ⬜ | 8h |
 | Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ⬜ | 5h |
@@ -124,10 +124,10 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | ID | 任务 | 产出/验收 | 依赖 | 状态 | 估算 |
 |---|---|---|---|---|---|
 | Q3-01 | trace ring buffer + 事件 ID | 固定容量、无丢事件/可计数 | Q2-16 | ⬜ | 6h |
-| Q3-02 | HardFault/MemManage/BusFault/UsageFault | 打印 CFSR/HFSR/MMFAR/BFAR | Q0-02 | ⬜ | 6h |
-| Q3-03 | 故障注入测试 | 空指针/非法指令/越界可复现 | Q3-02 | ⬜ | 4h |
-| Q3-04 | `-icount` 确定性回归 | 同一输入指令数稳定；非时序证据 | Q1-06 | ⬜ | 5h |
-| Q3-05 | GitHub Actions | fmt/clippy/test/QEMU/docs/commit lint | Q0-06 | ⬜ | 6h |
+| Q3-02 | HardFault/MemManage/BusFault/UsageFault | 打印 CFSR/HFSR/MMFAR/BFAR | Q0-02 | ✅ UsageFault | 6h |
+| Q3-03 | 故障注入测试 | 空指针/非法指令/越界可复现 | Q3-02 | ✅ udf | 4h |
+| Q3-04 | `-icount` 确定性回归 | 同一输入指令数稳定；非时序证据 | Q1-06 | ✅ | 5h |
+| Q3-05 | GitHub Actions | fmt/clippy/test/QEMU/docs/commit lint | Q0-06 | 🟡 workflow 已加 | 6h |
 | Q3-06 | 文档/链接/commit lint | 文档链接 0 broken；英文 commit | Q3-05 | ⬜ | 3h |
 | Q3-07 | 第一个公共 alpha tag | `v0.1.0-alpha.1` + release notes | Q3-05 | ⬜ | 2h |
 
@@ -255,10 +255,15 @@ H3-02 ─> H3-03 ─> H3-04
 
 **Q2 剩余**：
 
-1. 静态内存池 + 栈溢出报告（Q2-10/11）；
+1. 栈溢出报告（Q2-11）；
 2. sync 阻塞等待队列（Q2-07/08/09）；
 3. PAL QEMU 后端 + conformance（Q2-16/17）；
 4. 优先级继承/deadline（Q2-04/05，可后置）；
 5. MPU/NVIC/ISR（Q2-12/13/14）。
 
-**Q3 前置**：故障处理、`-icount` 回归、GitHub Actions。
+**Q3 进行中**：
+
+- ✅ 故障注入（`udf` → UsageFault + CFSR）；
+- ✅ `-icount` 双跑确定性；
+- 🟡 GitHub Actions workflow 已加，首跑待验证；
+- ⬜ trace ring、文档/commit lint、alpha tag。
