@@ -1,6 +1,6 @@
 # 26 · QEMU-first 开发任务计划
 
-**状态**：Q0 ✅、Q1 ✅、Q2 PAL ✅；Q3 进行中 ｜ **生效日期**：2026-11-11
+**状态**：Q0 ✅、Q1 ✅、Q2 PAL/栈 ✅；Q3 trace ✅ ｜ **生效日期**：2026-11-11
 **目标**：在 H750 板卡到货前，用 QEMU Cortex-M7 把 Phase 1 的**运行时功能**做真；板卡到货后只做板级替换与时序验收。
 
 > 本文是当前**唯一执行计划**。`docs/10-development-plan.md` 的 W1–W12 保留为历史基线。
@@ -107,11 +107,11 @@ H3 HIL + 逻辑分析仪 + D60 证据
 | Q2-04 | 优先级继承/天花板 | 无界优先级反转可检测 | Q2-03 | ⬜ | 8h |
 | Q2-05 | deadline/overrun 检测 | 超限计数 + trace | Q2-02 | ⬜ | 4h |
 | Q2-06 | 调度器 host + QEMU 测试 | 同一场景两处结果一致 | Q2-01..05 | ✅ | 6h |
-| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 try-only | 6h |
-| Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | 🟡 try-only | 6h |
+| Q2-07 | mutex | 互斥 + 优先级继承 | Q2-03 | 🟡 wait queue | 6h |
+| Q2-08 | semaphore / event flags | 计数/事件等待与唤醒 | Q2-03 | 🟡 sem queue | 6h |
 | Q2-09 | 临界区 + ISR-safe API | 关中断/恢复正确 | Q2-03 | 🟡 host 部分 | 4h |
 | Q2-10 | 静态内存池（实机语义） | 分配/释放/耗尽路径 | Q2-03 | ✅ host | 5h |
-| Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | 🟡 Q1 已有 canary | 4h |
+| Q2-11 | 栈 canary/溢出检测 | 溢出能报告任务名 | Q2-10 | ✅ 任务索引 | 4h |
 | Q2-12 | MPU 区域配置 | 越界访问触发 MemManage（QEMU 支持范围内） | Q2-10 | ⬜ | 8h |
 | Q2-13 | NVIC/IRQ 注册 | 软件触发 IRQ 可进 handler | Q0-02 | ⬜ | 5h |
 | Q2-14 | ISR-first / 延迟处理 | ISR 只做最小工作，后半段可测 | Q2-13 | ⬜ | 6h |
@@ -123,7 +123,7 @@ H3 HIL + 逻辑分析仪 + D60 证据
 
 | ID | 任务 | 产出/验收 | 依赖 | 状态 | 估算 |
 |---|---|---|---|---|---|
-| Q3-01 | trace ring buffer + 事件 ID | 固定容量、无丢事件/可计数 | Q2-16 | ⬜ | 6h |
+| Q3-01 | trace ring buffer + 事件 ID | 固定容量、无丢事件/可计数 | Q2-16 | ✅ | 6h |
 | Q3-02 | HardFault/MemManage/BusFault/UsageFault | 打印 CFSR/HFSR/MMFAR/BFAR | Q0-02 | ✅ UsageFault | 6h |
 | Q3-03 | 故障注入测试 | 空指针/非法指令/越界可复现 | Q3-02 | ✅ udf | 4h |
 | Q3-04 | `-icount` 确定性回归 | 同一输入指令数稳定；非时序证据 | Q1-06 | ✅ | 5h |
@@ -255,16 +255,17 @@ H3-02 ─> H3-03 ─> H3-04
 
 **Q2 剩余**：
 
-1. 栈溢出报告（Q2-11）；
-2. sync 阻塞等待队列（Q2-07/08/09）；
-3. 优先级继承/deadline（Q2-04/05，可后置）；
-4. MPU/NVIC/ISR（Q2-12/13/14）。
+1. 等待队列接入 QEMU block/wake（Q2-07/08/09）；
+2. 优先级继承/deadline（Q2-04/05，可后置）；
+3. MPU/NVIC/ISR（Q2-12/13/14）；
+4. 时间队列/timeout（Q2-15）。
 
-**Q2 已完成**：运行时会话、内存池、PAL QEMU + 共享 conformance。
+**Q2 已完成**：运行时会话、内存池、PAL QEMU + conformance、栈溢出报告。
 
 **Q3 进行中**：
 
 - ✅ 故障注入（`udf` → UsageFault + CFSR）；
 - ✅ `-icount` 双跑确定性；
+- ✅ trace ring（host + QEMU PAL）；
 - 🟡 GitHub Actions workflow 已加，首跑待验证；
-- ⬜ trace ring、文档/commit lint、alpha tag。
+- ⬜ 文档/commit lint、alpha tag。

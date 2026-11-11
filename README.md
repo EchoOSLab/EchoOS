@@ -73,6 +73,7 @@ Start with [docs/README.md](docs/README.md) (Chinese). Key entry points:
 - [31 Static memory pool (Q2)](docs/31-memory-pool.md)
 - [32 QEMU faults, icount, and CI (Q3)](docs/32-qemu-faults-ci.md)
 - [33 PAL QEMU backend and shared conformance (Q2)](docs/33-pal-qemu.md)
+- [34 Sync wait queues, stack overflow, and trace ring (Q2/Q3)](docs/34-sync-stack-trace.md)
 
 ## Scope and honesty boundaries
 

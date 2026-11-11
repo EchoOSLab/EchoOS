@@ -31,6 +31,8 @@
 | 2026-11-11 | Q2-002 | 功能 | QEMU idle/tick/block/sleep 运行时 | `8246590` |
 | 2026-11-11 | Q3-001 | 功能/部分 | 内存池 + 故障注入 + icount + CI workflow | `aefadf9` |
 | 2026-11-11 | Q2-003 | 功能 | PAL QEMU 后端 + 共享 conformance | `7ced17f` |
+| 2026-11-11 | Q2-004 | 功能/部分 | sync 等待队列 + 栈溢出报告 | `8722cb9` |
+| 2026-11-11 | Q3-002 | 功能 | trace ring + QEMU PAL 集成 | `8722cb9` |
 
 ---
 
@@ -776,6 +778,39 @@ cargo xtask icount                                  PASS
 1. 同步原语阻塞等待队列；
 2. 栈溢出报告；
 3. Q3 trace ring、CI 首跑、alpha tag。
+
+---
+
+## 2026-11-11 · Q2-004 / Q3-002 · 等待队列、栈溢出、trace ring
+
+**目标**：补 Q2 的等待队列/栈溢出报告，并完成 Q3 trace ring。
+
+**改动**：
+- `echo-sync`：`WaitQueue`、`Mutex::lock_or_wait/unlock_and_wake`、`Semaphore::wait_or_queue/post_and_wake`。
+- `echo-trace`：`Event` / `EventRing`；QEMU PAL `ObservabilityApi` 改用 ring。
+- `sched_main`：canary 失败报告任务索引；`stack-fault` feature 注入 canary 破坏。
+- `tools/scripts/qemu-stack.sh` + `cargo xtask stack`。
+- `docs/34-sync-stack-trace.md`。
+
+**验证**：
+```text
+cargo test                 101 passed
+cargo xtask sched          PASS
+cargo xtask pal            PASS
+cargo xtask stack          PASS（STACK OVERFLOW task=0）
+cargo xtask fault          PASS
+cargo xtask icount         PASS
+```
+
+**决策/偏差**：
+- 等待队列是 host/单核固定容量，尚未接到 QEMU block/wake；
+- 栈溢出是 canary 破坏注入，不是真实保护页；
+- trace ring 已接 QEMU PAL，但还没有 UART/RTT 后端；
+- Q2 仍未整体完成；Q3 CI/alpha 仍未完成。
+
+**下一步**：
+1. 等待队列接入 QEMU 阻塞/唤醒；
+2. Q3 CI 首跑确认、文档 lint、alpha tag。
 
 ---
 

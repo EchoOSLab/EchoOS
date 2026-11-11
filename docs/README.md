@@ -70,6 +70,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [31-memory-pool.md](31-memory-pool.md) | Q2 静态固定块内存池：分配/释放/错误路径 | 内核开发者 |
 | [32-qemu-faults-ci.md](32-qemu-faults-ci.md) | Q3 故障注入、`-icount` 确定性、GitHub Actions | 内核 / 维护者 |
 | [33-pal-qemu.md](33-pal-qemu.md) | Q2 PAL QEMU 后端 + 共享 conformance 契约 | 内核 / DoraOS 开发者 |
+| [34-sync-stack-trace.md](34-sync-stack-trace.md) | Q2 等待队列/栈溢出报告 + Q3 trace ring | 内核开发者 |
 
 ## 3. 项目摘要
 
