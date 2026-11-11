@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "echo-mps2-context"
 path = "src/context_main.rs"
 
+[[bin]]
+name = "echo-mps2-sched"
+path = "src/sched_main.rs"
+
 [dependencies]
 echo-sched.workspace = true
 echo-trace.workspace = true
