@@ -95,3 +95,15 @@ fn small_backend_enforces_its_limits() {
     }
     assert!(platform.memory().try_alloc(8).is_none());
 }
+
+#[test]
+fn shared_contract_passes_both_backends() {
+    assert_eq!(
+        echo_conformance::contract::check_common(&MockPlatform::new()),
+        Ok(())
+    );
+    assert_eq!(
+        echo_conformance::contract::check_common(&SmallMockPlatform::new()),
+        Ok(())
+    );
+}

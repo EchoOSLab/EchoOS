@@ -56,6 +56,7 @@ echo-sched = { path = "crates/kernel/echo-sched" }
 echo-sync = { path = "crates/kernel/echo-sync" }
 echo-time = { path = "crates/kernel/echo-time" }
 echo-bench = { path = "crates/test/echo-bench" }
+echo-conformance = { path = "crates/test/echo-conformance" }
 echo-trace = { path = "crates/core/echo-trace" }
 
 [profile.dev]

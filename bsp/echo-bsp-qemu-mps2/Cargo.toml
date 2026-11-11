@@ -20,6 +20,14 @@ path = "src/sched_main.rs"
 name = "echo-mps2-fault"
 path = "src/fault_main.rs"
 
+[[bin]]
+name = "echo-mps2-pal"
+path = "src/pal_main.rs"
+
 [dependencies]
+echo-conformance.workspace = true
+echo-ipc.workspace = true
+echo-mem.workspace = true
+echo-pal-api.workspace = true
 echo-sched.workspace = true
 echo-trace.workspace = true

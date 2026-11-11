@@ -6,5 +6,6 @@
 //! - `mock_small`：第二个 PAL 后端（小容量，验证 conformance 不依赖容量）；
 //! - `tests/`：3 节点图、PAL 契约等验收用例。
 
+pub mod contract;
 pub mod mock;
 pub mod mock_small;
