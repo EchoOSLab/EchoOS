@@ -28,6 +28,7 @@
 | 2026-11-11 | Q0-001 | 功能 | QEMU MPS2 runtime：linker/向量/SysTick/semihosting | `f321b74` |
 | 2026-11-11 | Q1-001 | 功能 | QEMU 真实 PendSV/PSP + 3 任务 10k 切换 | `65a6630` |
 | 2026-11-11 | Q2-001 | 功能/部分 | sleep/wake/idle + Mutex/Semaphore/Event（host） | `54aaec5` |
+| 2026-11-11 | Q2-002 | 功能 | QEMU idle/tick/block/sleep 运行时 | `8246590` |
 
 ---
 
@@ -664,6 +665,47 @@ cargo clippy                                 无警告
 3. 任务 sleep/block 的真实切换；
 4. 静态池 + 栈溢出报告；
 5. PAL QEMU 后端 + conformance。
+
+---
+
+## 2026-11-11 · Q2-002 · QEMU 调度运行时
+
+**目标**：把 Q2 host 调度逻辑接进真实 QEMU 上下文切换，验证 idle、SysTick、block、sleep/wake。
+
+**改动**：
+- `bsp/echo-bsp-qemu-mps2/src/sched_main.rs`：4 任务（task0/1/2 + idle）、SysTick `wake_due`、sleep/block、20k 切换。
+- `tools/scripts/qemu-sched.sh` + `cargo xtask sched`。
+- `docs/30-qemu-scheduler.md`：运行时契约与限制。
+- `docs/26-qemu-first-plan.md`：Q2-01/02/03/06 标为完成。
+
+**验证**：
+```text
+cargo xtask sched
+PASS  qemu-mps2 scheduler (exit=0, 87B)
+EchoOS MPS2: sched OK t0=9494 t1=10260 t2=100 idle=100 wake=1 ticks=54 switches=20001
+
+cargo xtask qemu-runtime   PASS
+cargo xtask context        PASS
+cargo test                 89 passed
+cargo xtask graph          PASS
+cargo xtask hello          四目标 PASS
+```
+
+**关键点**：
+- `pendsv_switch` 只在当前状态为 `Running` 时调用 `yield_now()`；Sleeping/Blocked 不能被重新置 Ready。
+- SysTick 每次 tick 都 `wake_due` 并 pend PendSV，兼作时间片。
+- idle 是优先级 0 的普通任务；worker 全阻塞后自然被选中。
+
+**边界**：
+- QEMU 只证明功能，不产出抖动/延迟；
+- 同步原语仍是 try-only；
+- 无 PAL QEMU、无内存池、无故障回归。
+
+**下一步（Q2 收尾/Q3）**：
+1. 静态内存池 + 栈溢出报告；
+2. sync 阻塞等待队列；
+3. PAL QEMU 后端 + conformance；
+4. Q3 故障处理 / `-icount` / GitHub Actions。
 
 ---
 

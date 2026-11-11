@@ -66,6 +66,7 @@ EchoOS 是一个**从零用 Rust 实现**、面向**具身智能机器人**的**
 | [27-qemu-runtime.md](27-qemu-runtime.md) | Q0 QEMU MPS2-AN500 runtime：linker、向量、SysTick、semihosting | 内核开发者 |
 | [28-qemu-context.md](28-qemu-context.md) | Q1 真实 PendSV/PSP、SVC、3 任务抢占/RR、10k 切换 | 内核开发者 |
 | [29-scheduler-sync.md](29-scheduler-sync.md) | Q2 部分：sleep/wake/idle + Mutex/Semaphore/Event（host） | 内核开发者 |
+| [30-qemu-scheduler.md](30-qemu-scheduler.md) | Q2 QEMU 运行时会话：idle、SysTick、block/sleep/wake | 内核开发者 |
 
 ## 3. 项目摘要
 
